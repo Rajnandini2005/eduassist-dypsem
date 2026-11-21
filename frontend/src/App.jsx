@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import Sidebar from './components/Sidebar';
 import Navbar from './components/Navbar';
 import BottomNav from './components/BottomNav';
 import PWAInstallBanner from './components/PWAInstallBanner';
+import { wakeUpBackend } from './services/api';
 
 // Pages
 import Dashboard from './pages/Dashboard';
@@ -18,6 +19,12 @@ import Analytics from './pages/Analytics';
 import AdminUsers from './pages/AdminUsers';
 import Profile from './pages/Profile';
 import Login from './pages/Login';
+
+// Wake up backend on app start (Render free tier cold start)
+wakeUpBackend().then(ok => {
+  if (ok) console.log('✅ EduAssist Backend is online');
+  else console.warn('⚠️ Backend warming up — using local fallback data');
+});
 
 function MainLayout() {
   const { user, loading } = useAuth();

@@ -1,7 +1,7 @@
-// API Service — EduAssist DYPSEM Helpdesk
-// Render free tier spins down after 15 min inactivity — first request may take 30-60s
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || "https://eduassist-dypsem-backend.onrender.com/api/v1";
+// Backend URL — permanently hardcoded
+// Render free tier wakes up in 30-60 seconds after inactivity
+export const BACKEND_URL = "https://eduassist-dypsem-backend.onrender.com";
+export const API_BASE_URL = `${BACKEND_URL}/api/v1`;
 
 const getAuthHeaders = () => {
   const token = localStorage.getItem("helpdesk_token");
@@ -11,42 +11,53 @@ const getAuthHeaders = () => {
   };
 };
 
-// Fetch with timeout — handles Render cold start (up to 60s)
-async function fetchWithTimeout(url, options = {}, timeoutMs = 60000) {
-  const controller = new AbortController();
-  const id = setTimeout(() => controller.abort(), timeoutMs);
+// Ping backend silently — wakes up Render free tier
+export async function wakeUpBackend() {
   try {
-    const res = await fetch(url, { ...options, signal: controller.signal });
+    await fetch(`${BACKEND_URL}/health`, { method: "GET", signal: AbortSignal.timeout(60000) });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+// Smart fetch with 60s timeout for Render cold start
+async function apiFetch(url, options = {}) {
+  try {
+    const res = await fetch(url, { ...options, signal: AbortSignal.timeout(60000) });
     return res;
-  } finally {
-    clearTimeout(id);
+  } catch (err) {
+    if (err.name === 'TimeoutError' || err.name === 'AbortError') {
+      throw new Error('BACKEND_SLOW');
+    }
+    throw new Error('BACKEND_UNAVAILABLE');
   }
 }
 
 export const api = {
   // Auth
   login: async (email, password) => {
-    const res = await fetchWithTimeout(`${API_BASE_URL}/auth/login`, {
+    const res = await apiFetch(`${API_BASE_URL}/auth/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password })
-    }, 60000);
+    });
     if (!res.ok) throw new Error((await res.json()).detail || "Login failed");
     return res.json();
   },
 
   register: async (userData) => {
-    const res = await fetchWithTimeout(`${API_BASE_URL}/auth/register`, {
+    const res = await apiFetch(`${API_BASE_URL}/auth/register`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(userData)
-    }, 60000);
+    });
     if (!res.ok) throw new Error((await res.json()).detail || "Registration failed");
     return res.json();
   },
 
   switchRole: async (role) => {
-    const res = await fetch(`${API_BASE_URL}/auth/demo-switch`, {
+    const res = await apiFetch(`${API_BASE_URL}/auth/demo-switch`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ role })
@@ -56,280 +67,199 @@ export const api = {
   },
 
   getMe: async () => {
-    const res = await fetch(`${API_BASE_URL}/auth/me`, {
-      headers: getAuthHeaders()
-    });
+    const res = await apiFetch(`${API_BASE_URL}/auth/me`, { headers: getAuthHeaders() });
     if (!res.ok) throw new Error("Session expired");
     return res.json();
   },
 
   getUsers: async () => {
-    const res = await fetch(`${API_BASE_URL}/auth/users`, {
-      headers: getAuthHeaders()
-    });
+    const res = await apiFetch(`${API_BASE_URL}/auth/users`, { headers: getAuthHeaders() });
     return res.json();
   },
 
   updateUser: async (userId, data) => {
-    const res = await fetch(`${API_BASE_URL}/auth/users/${userId}`, {
+    const res = await apiFetch(`${API_BASE_URL}/auth/users/${userId}`, {
       method: "PATCH",
       headers: getAuthHeaders(),
       body: JSON.stringify(data)
     });
-    if (!res.ok) throw new Error((await res.json()).detail || "Failed to update user");
     return res.json();
   },
 
-  // AI Chat & RAG
-  askChat: async (query, department_id = null) => {
-    const res = await fetch(`${API_BASE_URL}/chat/ask`, {
+  // Chat
+  askChat: async (query, departmentId = null) => {
+    const res = await apiFetch(`${API_BASE_URL}/chat/ask`, {
       method: "POST",
       headers: getAuthHeaders(),
-      body: JSON.stringify({ query, department_id })
+      body: JSON.stringify({ query, department_id: departmentId })
     });
-    if (!res.ok) throw new Error((await res.json()).detail || "AI query failed");
+    if (!res.ok) throw new Error("Chat request failed");
     return res.json();
   },
 
-  sendFeedback: async (query_id, feedback, comment = "") => {
-    const res = await fetch(`${API_BASE_URL}/chat/feedback`, {
+  sendFeedback: async (queryId, feedback, comment = null) => {
+    const res = await apiFetch(`${API_BASE_URL}/chat/feedback`, {
       method: "POST",
       headers: getAuthHeaders(),
-      body: JSON.stringify({ query_id, feedback, comment })
+      body: JSON.stringify({ query_id: queryId, feedback, comment })
     });
     return res.json();
   },
 
   getChatHistory: async () => {
-    const res = await fetch(`${API_BASE_URL}/chat/history`, {
-      headers: getAuthHeaders()
-    });
+    const res = await apiFetch(`${API_BASE_URL}/chat/history`, { headers: getAuthHeaders() });
     return res.json();
   },
 
   // Documents
-  getDocuments: async (department_id = null) => {
-    const url = department_id
-      ? `${API_BASE_URL}/documents/?department_id=${department_id}`
-      : `${API_BASE_URL}/documents/`;
-    const res = await fetch(url, { headers: getAuthHeaders() });
-    return res.json();
-  },
-
-  getDocumentChunks: async (docId) => {
-    const res = await fetch(`${API_BASE_URL}/documents/${docId}/chunks`, {
-      headers: getAuthHeaders()
-    });
+  getDocuments: async () => {
+    const res = await apiFetch(`${API_BASE_URL}/documents`, { headers: getAuthHeaders() });
     return res.json();
   },
 
   uploadDocument: async (formData) => {
     const token = localStorage.getItem("helpdesk_token");
-    const res = await fetch(`${API_BASE_URL}/documents/upload`, {
+    const res = await apiFetch(`${API_BASE_URL}/documents/upload`, {
       method: "POST",
-      headers: {
-        ...(token ? { Authorization: `Bearer ${token}` } : {})
-      },
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
       body: formData
     });
-    if (!res.ok) throw new Error((await res.json()).detail || "Upload failed");
+    if (!res.ok) throw new Error("Upload failed");
     return res.json();
   },
 
   deleteDocument: async (docId) => {
-    const res = await fetch(`${API_BASE_URL}/documents/${docId}`, {
+    const res = await apiFetch(`${API_BASE_URL}/documents/${docId}`, {
       method: "DELETE",
       headers: getAuthHeaders()
     });
     return res.json();
   },
 
-  // Support Tickets
+  // Tickets
   getTickets: async (filters = {}) => {
     const params = new URLSearchParams();
     if (filters.status) params.append("status", filters.status);
     if (filters.priority) params.append("priority", filters.priority);
     if (filters.category) params.append("category", filters.category);
-    if (filters.assigned_to) params.append("assigned_to", filters.assigned_to);
     if (filters.department_id) params.append("department_id", filters.department_id);
-
-    const res = await fetch(`${API_BASE_URL}/tickets/?${params.toString()}`, {
-      headers: getAuthHeaders()
-    });
-    return res.json();
-  },
-
-  getTicketById: async (id) => {
-    const res = await fetch(`${API_BASE_URL}/tickets/${id}`, {
-      headers: getAuthHeaders()
-    });
-    if (!res.ok) throw new Error("Ticket not found");
+    const res = await apiFetch(`${API_BASE_URL}/tickets?${params.toString()}`, { headers: getAuthHeaders() });
     return res.json();
   },
 
   createTicket: async (ticketData) => {
-    const res = await fetch(`${API_BASE_URL}/tickets/`, {
+    const res = await apiFetch(`${API_BASE_URL}/tickets`, {
       method: "POST",
       headers: getAuthHeaders(),
       body: JSON.stringify(ticketData)
     });
-    if (!res.ok) throw new Error((await res.json()).detail || "Ticket creation failed");
+    if (!res.ok) throw new Error((await res.json()).detail || "Failed to create ticket");
     return res.json();
   },
 
-  updateTicketStatus: async (ticketId, status, resolution_notes = "") => {
-    const res = await fetch(`${API_BASE_URL}/tickets/${ticketId}/status`, {
+  updateTicket: async (ticketId, updateData) => {
+    const res = await apiFetch(`${API_BASE_URL}/tickets/${ticketId}`, {
       method: "PATCH",
       headers: getAuthHeaders(),
-      body: JSON.stringify({ status, resolution_notes })
-    });
-    return res.json();
-  },
-
-  assignTicket: async (ticketId, assigned_to) => {
-    const res = await fetch(`${API_BASE_URL}/tickets/${ticketId}/assign`, {
-      method: "PATCH",
-      headers: getAuthHeaders(),
-      body: JSON.stringify({ assigned_to })
-    });
-    return res.json();
-  },
-
-  addComment: async (ticketId, message, is_internal = false) => {
-    const res = await fetch(`${API_BASE_URL}/tickets/${ticketId}/comments`, {
-      method: "POST",
-      headers: getAuthHeaders(),
-      body: JSON.stringify({ message, is_internal })
+      body: JSON.stringify(updateData)
     });
     return res.json();
   },
 
   // Departments
   getDepartments: async () => {
-    const res = await fetch(`${API_BASE_URL}/departments/`, {
-      headers: getAuthHeaders()
-    });
+    const res = await apiFetch(`${API_BASE_URL}/departments`, { headers: getAuthHeaders() });
+    if (!res.ok) throw new Error("Departments fetch failed");
     return res.json();
   },
 
   // Notices
-  getNotices: async (department_id = null) => {
-    const url = department_id
-      ? `${API_BASE_URL}/notices/?department_id=${department_id}`
-      : `${API_BASE_URL}/notices/`;
-    const res = await fetch(url, { headers: getAuthHeaders() });
+  getNotices: async (filters = {}) => {
+    const params = new URLSearchParams();
+    if (filters.category) params.append("category", filters.category);
+    if (filters.pinned !== undefined) params.append("pinned", filters.pinned);
+    const res = await apiFetch(`${API_BASE_URL}/notices?${params.toString()}`, { headers: getAuthHeaders() });
     return res.json();
   },
 
-  createNotice: async (noticeData) => {
-    const res = await fetch(`${API_BASE_URL}/notices/`, {
+  createNotice: async (data) => {
+    const res = await apiFetch(`${API_BASE_URL}/notices`, {
       method: "POST",
       headers: getAuthHeaders(),
-      body: JSON.stringify(noticeData)
+      body: JSON.stringify(data)
     });
-    if (!res.ok) throw new Error((await res.json()).detail || "Failed to publish notice");
     return res.json();
   },
 
-  updateNotice: async (noticeId, updates) => {
-    const res = await fetch(`${API_BASE_URL}/notices/${noticeId}`, {
+  updateNotice: async (noticeId, data) => {
+    const res = await apiFetch(`${API_BASE_URL}/notices/${noticeId}`, {
       method: "PATCH",
       headers: getAuthHeaders(),
-      body: JSON.stringify(updates)
-    });
-    if (!res.ok) throw new Error((await res.json()).detail || "Failed to update notice");
-    return res.json();
-  },
-
-  togglePinNotice: async (noticeId) => {
-    const res = await fetch(`${API_BASE_URL}/notices/${noticeId}/toggle-pin`, {
-      method: "POST",
-      headers: getAuthHeaders()
+      body: JSON.stringify(data)
     });
     return res.json();
   },
 
   deleteNotice: async (noticeId) => {
-    const res = await fetch(`${API_BASE_URL}/notices/${noticeId}`, {
+    const res = await apiFetch(`${API_BASE_URL}/notices/${noticeId}`, {
       method: "DELETE",
       headers: getAuthHeaders()
     });
-    if (!res.ok) throw new Error((await res.json()).detail || "Failed to delete notice");
     return res.json();
   },
 
   // FAQs
-  getFaqs: async (department_id = null) => {
-    const url = department_id
-      ? `${API_BASE_URL}/faqs/?department_id=${department_id}`
-      : `${API_BASE_URL}/faqs/`;
-    const res = await fetch(url, { headers: getAuthHeaders() });
+  getFaqs: async (departmentId = null) => {
+    const url = departmentId
+      ? `${API_BASE_URL}/faqs?department_id=${departmentId}`
+      : `${API_BASE_URL}/faqs`;
+    const res = await apiFetch(url, { headers: getAuthHeaders() });
     return res.json();
   },
 
-  createFaq: async (faqData) => {
-    const res = await fetch(`${API_BASE_URL}/faqs/`, {
+  createFaq: async (data) => {
+    const res = await apiFetch(`${API_BASE_URL}/faqs`, {
       method: "POST",
       headers: getAuthHeaders(),
-      body: JSON.stringify(faqData)
+      body: JSON.stringify(data)
     });
-    if (!res.ok) throw new Error((await res.json()).detail || "Failed to create FAQ");
     return res.json();
   },
 
-  updateFaq: async (faqId, updates) => {
-    const res = await fetch(`${API_BASE_URL}/faqs/${faqId}`, {
+  updateFaq: async (faqId, data) => {
+    const res = await apiFetch(`${API_BASE_URL}/faqs/${faqId}`, {
       method: "PATCH",
       headers: getAuthHeaders(),
-      body: JSON.stringify(updates)
+      body: JSON.stringify(data)
     });
     return res.json();
   },
 
   deleteFaq: async (faqId) => {
-    const res = await fetch(`${API_BASE_URL}/faqs/${faqId}`, {
+    const res = await apiFetch(`${API_BASE_URL}/faqs/${faqId}`, {
       method: "DELETE",
       headers: getAuthHeaders()
     });
     return res.json();
   },
 
-  // System & Supabase
-  getSupabaseStatus: async () => {
-    const res = await fetch(`${API_BASE_URL}/system/supabase-status`, {
-      headers: getAuthHeaders()
-    });
+  // Analytics
+  getAnalytics: async () => {
+    const res = await apiFetch(`${API_BASE_URL}/analytics/dashboard`, { headers: getAuthHeaders() });
     return res.json();
   },
 
-  saveSupabaseConfig: async (configData) => {
-    const res = await fetch(`${API_BASE_URL}/system/supabase-config`, {
+  // System
+  getSupabaseStatus: async () => {
+    const res = await apiFetch(`${API_BASE_URL}/system/supabase-status`);
+    return res.json();
+  },
+
+  configureSupabase: async (config) => {
+    const res = await apiFetch(`${API_BASE_URL}/system/supabase-config`, {
       method: "POST",
       headers: getAuthHeaders(),
-      body: JSON.stringify(configData)
-    });
-    if (!res.ok) throw new Error((await res.json()).detail || "Failed to configure Supabase");
-    return res.json();
-  },
-
-  // Analytics
-  getAnalyticsOverview: async () => {
-    const res = await fetch(`${API_BASE_URL}/analytics/overview`, {
-      headers: getAuthHeaders()
-    });
-    return res.json();
-  },
-
-  getUnansweredQueries: async () => {
-    const res = await fetch(`${API_BASE_URL}/analytics/unanswered`, {
-      headers: getAuthHeaders()
-    });
-    return res.json();
-  },
-
-  getDepartmentWorkload: async () => {
-    const res = await fetch(`${API_BASE_URL}/analytics/department-workload`, {
-      headers: getAuthHeaders()
+      body: JSON.stringify(config)
     });
     return res.json();
   }
