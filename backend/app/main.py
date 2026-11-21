@@ -8,26 +8,26 @@ from app.api import auth, chat, documents, tickets, departments, notices, faqs, 
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
-    description="EduAssist – D. Y. Patil School of Engineering & Management (DYPSEM), Kolhapur. AI-powered Student Helpdesk & Academic Assistance System with RAG, pgvector search, and role-based ticket management.",
+    description="EduAssist — D. Y. Patil School of Engineering & Management (DYPSEM), Kolhapur. AI-powered Student Helpdesk & Academic Assistance System.",
     version="1.0.0",
     docs_url="/docs",
     redoc_url="/redoc"
 )
 
-# Enable CORS for React frontend
+# CORS — allow frontend + all origins in dev
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # In development allow all; in production restrict to frontend domain
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Mount uploads directory for previewing uploaded documents/attachments
+# Static uploads
 if os.path.exists(settings.UPLOAD_DIR):
     app.mount("/uploads", StaticFiles(directory=settings.UPLOAD_DIR), name="uploads")
 
-# Include Routers
+# Routers
 app.include_router(auth.router, prefix=settings.API_V1_PREFIX)
 app.include_router(chat.router, prefix=settings.API_V1_PREFIX)
 app.include_router(documents.router, prefix=settings.API_V1_PREFIX)
@@ -42,24 +42,21 @@ app.include_router(system.router, prefix=settings.API_V1_PREFIX)
 def root():
     return {
         "status": "online",
-        "system": settings.PROJECT_NAME,
+        "system": "EduAssist DYPSEM",
+        "college": "D. Y. Patil School of Engineering & Management, Kolhapur",
+        "university": "D. Y. Patil Education Society (Deemed to be University)",
         "version": "1.0.0",
         "docs": "/docs",
-        "endpoints": {
-            "auth": f"{settings.API_V1_PREFIX}/auth",
-            "chat_rag": f"{settings.API_V1_PREFIX}/chat",
-            "documents": f"{settings.API_V1_PREFIX}/documents",
-            "tickets": f"{settings.API_V1_PREFIX}/tickets",
-            "departments": f"{settings.API_V1_PREFIX}/departments",
-            "notices": f"{settings.API_V1_PREFIX}/notices",
-            "faqs": f"{settings.API_V1_PREFIX}/faqs",
-            "analytics": f"{settings.API_V1_PREFIX}/analytics"
-        }
+        "health": "/health"
     }
 
 @app.get("/health")
 def health_check():
-    return {"status": "healthy", "service": "College Helpdesk API"}
+    return {
+        "status": "healthy",
+        "service": "EduAssist DYPSEM Backend API",
+        "mode": "in_memory_with_supabase_sync"
+    }
 
 if __name__ == "__main__":
     import uvicorn

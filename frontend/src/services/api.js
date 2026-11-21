@@ -1,6 +1,7 @@
-// API Service for AI College Helpdesk & Student Assistance System
+// API Service — EduAssist DYPSEM Helpdesk
+// Render free tier spins down after 15 min inactivity — first request may take 30-60s
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000/api/v1";
+const API_BASE_URL = import.meta.env.VITE_API_URL || "https://eduassist-dypsem-backend.onrender.com/api/v1";
 
 const getAuthHeaders = () => {
   const token = localStorage.getItem("helpdesk_token");
@@ -10,24 +11,36 @@ const getAuthHeaders = () => {
   };
 };
 
+// Fetch with timeout — handles Render cold start (up to 60s)
+async function fetchWithTimeout(url, options = {}, timeoutMs = 60000) {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(url, { ...options, signal: controller.signal });
+    return res;
+  } finally {
+    clearTimeout(id);
+  }
+}
+
 export const api = {
   // Auth
   login: async (email, password) => {
-    const res = await fetch(`${API_BASE_URL}/auth/login`, {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/auth/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password })
-    });
+    }, 60000);
     if (!res.ok) throw new Error((await res.json()).detail || "Login failed");
     return res.json();
   },
 
   register: async (userData) => {
-    const res = await fetch(`${API_BASE_URL}/auth/register`, {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/auth/register`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(userData)
-    });
+    }, 60000);
     if (!res.ok) throw new Error((await res.json()).detail || "Registration failed");
     return res.json();
   },

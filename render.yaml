@@ -7,14 +7,14 @@ services:
     startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: SUPABASE_URL
-        sync: false
+        value: https://uxsdgmdvsklkshptbsax.supabase.co
       - key: SUPABASE_KEY
-        sync: false
-      - key: GEMINI_API_KEY
-        sync: false
+        value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV4c2RnbWR2c2tsa3NocHRic2F4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTUyNzE5MzEsImV4cCI6MjExMDg0NzkzMX0.TcWZ-1DJi0LLAGj6vSCWfwIANNK3-_YhrYUqzgVdZ70
       - key: JWT_SECRET
-        generateValue: true
+        value: EduAssist_DYPSEM_JWT_2025_Secure_Key_XyZ
       - key: ENVIRONMENT
         value: production
       - key: CORS_ORIGINS
         value: https://eduassist-dypsem.onrender.com
+      - key: GEMINI_API_KEY
+        sync: false
