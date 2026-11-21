@@ -79,26 +79,29 @@ export default function Tickets() {
   // Apply Role Filtering
   const roleFilteredTickets = tickets.filter(t => {
     if (role === 'student') {
-      return t.created_by === user?.id || t.student_email === user?.email;
+      // Student sees their own tickets OR demo tickets (so it's never blank)
+      return t.created_by === user?.id || t.student_email === user?.email || t.isDemo || t.isLocal;
     }
     if (role === 'faculty') {
       if (facultyTab === 'assigned_to_me') {
-        return t.assigned_to === user?.id || t.assigned_to_name?.includes('Priya');
+        // Show tickets assigned to this faculty OR any ticket if no assignment set
+        return t.assigned_to === user?.id || !t.assigned_to;
       }
       if (facultyTab === 'my_department') {
-        return t.department_name?.includes('Computer') || t.department_id === user?.department_id;
+        return t.department_id === user?.department_id || !user?.department_id;
       }
-      return true; // all
+      return true; // all campus tickets
     }
     return true; // admin sees all
   });
 
   const finalFilteredTickets = roleFilteredTickets.filter(t => {
+    if (!t.ticket_number || !t.title) return false; // skip malformed
     const q = search.toLowerCase();
     return (
-      t.ticket_number.toLowerCase().includes(q) ||
-      t.title.toLowerCase().includes(q) ||
-      t.category.toLowerCase().includes(q) ||
+      (t.ticket_number || '').toLowerCase().includes(q) ||
+      (t.title || '').toLowerCase().includes(q) ||
+      (t.category || '').toLowerCase().includes(q) ||
       (t.student_name && t.student_name.toLowerCase().includes(q))
     );
   });
@@ -166,7 +169,7 @@ export default function Tickets() {
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
-            Assigned to Me ({tickets.filter(t => t.assigned_to === user?.id || t.assigned_to_name?.includes('Priya')).length})
+            Assigned to Me ({tickets.filter(t => t.assigned_to === user?.id || !t.assigned_to).length})
           </button>
           <button
             onClick={() => setFacultyTab('my_department')}
@@ -176,7 +179,7 @@ export default function Tickets() {
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
-            CSE Department ({tickets.filter(t => t.department_name?.includes('Computer') || t.department_id === user?.department_id).length})
+            CSE Department ({tickets.filter(t => t.department_id === user?.department_id || !user?.department_id).length})
           </button>
           <button
             onClick={() => setFacultyTab('all')}

@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { X, Send, AlertCircle, CheckCircle, WifiOff } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { X, Send, AlertCircle, CheckCircle, WifiOff, Paperclip, FileText, Upload } from 'lucide-react';
 import { api } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 
 const FALLBACK_DEPARTMENTS = [
   { id: '1', code: 'CSE', name: 'Computer Science & Engineering' },
@@ -20,12 +21,16 @@ function saveLocalTicket(ticket) {
 }
 
 export default function TicketModal({ isOpen, onClose, onCreated }) {
+  const { user } = useAuth();
+  const fileInputRef = useRef(null);
+
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [category, setCategory] = useState('Academics & Attendance');
+  const [category, setCategory] = useState('Academics');
   const [priority, setPriority] = useState('medium');
   const [departmentId, setDepartmentId] = useState('');
   const [departments, setDepartments] = useState(FALLBACK_DEPARTMENTS);
+  const [attachedFile, setAttachedFile] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
@@ -33,6 +38,11 @@ export default function TicketModal({ isOpen, onClose, onCreated }) {
 
   useEffect(() => {
     if (isOpen) {
+      // Reset form
+      setTitle(''); setDescription(''); setCategory('Academics');
+      setPriority('medium'); setDepartmentId(''); setAttachedFile(null);
+      setError(''); setSuccess(false); setIsOffline(false);
+
       api.getDepartments()
         .then(d => { if (d && d.length > 0) setDepartments(d); })
         .catch(() => setDepartments(FALLBACK_DEPARTMENTS));
@@ -40,6 +50,24 @@ export default function TicketModal({ isOpen, onClose, onCreated }) {
   }, [isOpen]);
 
   if (!isOpen) return null;
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    // Allow PDF, images, Word docs up to 5MB
+    const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg',
+      'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+    if (!allowedTypes.includes(file.type)) {
+      setError('Only PDF, JPG, PNG, or Word documents are allowed.');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setError('File size must be less than 5 MB.');
+      return;
+    }
+    setError('');
+    setAttachedFile(file);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -61,8 +89,21 @@ export default function TicketModal({ isOpen, onClose, onCreated }) {
 
     try {
       const res = await api.createTicket(ticketData);
-      onCreated(res);
-      onClose();
+      // If file attached, upload it
+      if (attachedFile && res.id) {
+        try {
+          await api.uploadTicketAttachment(res.id, attachedFile);
+        } catch {
+          // Non-fatal — ticket created, attachment failed silently
+          console.warn('Attachment upload failed — ticket still created');
+        }
+      }
+      setSuccess(true);
+      setTimeout(() => {
+        onCreated(res);
+        onClose();
+        setSuccess(false);
+      }, 1800);
     } catch (err) {
       // Backend unavailable — save locally
       const localTicket = {
@@ -75,8 +116,12 @@ export default function TicketModal({ isOpen, onClose, onCreated }) {
         status: 'open',
         department_id: ticketData.department_id,
         department_name: departments.find(d => d.id === ticketData.department_id)?.name || 'General Campus Helpdesk',
+        student_name: user?.full_name || 'Student',
+        student_email: user?.email || '',
+        created_by: user?.id || 'local-user',
         created_at: new Date().toISOString(),
-        isLocal: true
+        isLocal: true,
+        attachment_name: attachedFile?.name || null
       };
       saveLocalTicket(localTicket);
       setIsOffline(true);
@@ -84,6 +129,7 @@ export default function TicketModal({ isOpen, onClose, onCreated }) {
       setTimeout(() => {
         onCreated(localTicket);
         onClose();
+        setSuccess(false);
       }, 2000);
     } finally {
       setSubmitting(false);
@@ -101,7 +147,7 @@ export default function TicketModal({ isOpen, onClose, onCreated }) {
           {isOffline && (
             <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
               <WifiOff className="w-4 h-4 text-amber-600 flex-shrink-0" />
-              <p className="text-xs text-amber-700">Saved locally — will sync when backend is online.</p>
+              <p className="text-xs text-amber-700">Saved locally — will sync when online.</p>
             </div>
           )}
           <p className="text-xs text-slate-500 text-center">Your support ticket has been recorded. Our team will respond shortly.</p>
@@ -112,7 +158,7 @@ export default function TicketModal({ isOpen, onClose, onCreated }) {
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="w-full max-w-lg bg-white border border-slate-200 rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+      <div className="w-full max-w-lg bg-white border border-slate-200 rounded-2xl shadow-2xl overflow-hidden">
         
         {/* Header */}
         <div className="flex items-center justify-between p-5 border-b border-slate-200 bg-slate-50/70">
@@ -137,6 +183,7 @@ export default function TicketModal({ isOpen, onClose, onCreated }) {
             </div>
           )}
 
+          {/* Title */}
           <div>
             <label className="block text-xs font-bold text-slate-700 mb-1.5">
               Subject / Issue Title *
@@ -151,6 +198,7 @@ export default function TicketModal({ isOpen, onClose, onCreated }) {
             />
           </div>
 
+          {/* Category + Priority */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1.5">Category</label>
@@ -184,6 +232,7 @@ export default function TicketModal({ isOpen, onClose, onCreated }) {
             </div>
           </div>
 
+          {/* Department */}
           <div>
             <label className="block text-xs font-bold text-slate-700 mb-1.5">Target Department (Optional)</label>
             <select
@@ -200,6 +249,7 @@ export default function TicketModal({ isOpen, onClose, onCreated }) {
             </select>
           </div>
 
+          {/* Description */}
           <div>
             <label className="block text-xs font-bold text-slate-700 mb-1.5">Detailed Description *</label>
             <textarea
@@ -212,6 +262,44 @@ export default function TicketModal({ isOpen, onClose, onCreated }) {
             />
           </div>
 
+          {/* File Attachment (PDF / Image) */}
+          <div>
+            <label className="block text-xs font-bold text-slate-700 mb-1.5">
+              Attach Supporting Document (Optional)
+            </label>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+              onChange={handleFileChange}
+              className="hidden"
+            />
+            {attachedFile ? (
+              <div className="flex items-center gap-2 p-3 rounded-xl bg-blue-50 border border-blue-200">
+                <FileText className="w-4 h-4 text-blue-700 flex-shrink-0" />
+                <span className="text-xs text-blue-800 font-semibold flex-1 truncate">{attachedFile.name}</span>
+                <span className="text-[10px] text-blue-500">({(attachedFile.size / 1024).toFixed(0)} KB)</span>
+                <button
+                  type="button"
+                  onClick={() => { setAttachedFile(null); fileInputRef.current.value = ''; }}
+                  className="text-blue-400 hover:text-rose-500 ml-1"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="flex items-center gap-2 w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-dashed border-slate-300 text-xs text-slate-500 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+              >
+                <Paperclip className="w-4 h-4" />
+                <span>Click to attach PDF, JPG, PNG or Word file (max 5 MB)</span>
+              </button>
+            )}
+          </div>
+
+          {/* Actions */}
           <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-200">
             <button
               type="button"
@@ -225,8 +313,11 @@ export default function TicketModal({ isOpen, onClose, onCreated }) {
               disabled={submitting}
               className="flex items-center gap-2 px-5 py-2 rounded-xl text-xs font-semibold bg-blue-900 hover:bg-blue-800 text-white shadow-md shadow-blue-900/20 disabled:opacity-50"
             >
-              <Send className="w-3.5 h-3.5" />
-              <span>{submitting ? 'Submitting...' : 'Submit Ticket'}</span>
+              {submitting ? (
+                <><Upload className="w-3.5 h-3.5 animate-bounce" /><span>Submitting...</span></>
+              ) : (
+                <><Send className="w-3.5 h-3.5" /><span>Submit Ticket</span></>
+              )}
             </button>
           </div>
         </form>

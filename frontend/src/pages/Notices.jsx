@@ -27,9 +27,10 @@ export default function Notices() {
     setLoading(true);
     try {
       const data = await api.getNotices();
-      setNotices(data);
+      setNotices(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error(err);
+      setNotices([]); // api.js already handles fallback
     } finally {
       setLoading(false);
     }

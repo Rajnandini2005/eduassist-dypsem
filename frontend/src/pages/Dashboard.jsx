@@ -409,14 +409,14 @@ export default function Dashboard() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [statsData, ticketsData, noticesData] = await Promise.all([
-          api.getAnalyticsOverview(),
+        const [ticketsData, noticesData] = await Promise.allSettled([
           api.getTickets(),
           api.getNotices(),
         ]);
-        setAnalytics(statsData);
-        setTickets(ticketsData);
-        setNotices(noticesData.slice(0, 5));
+        setTickets(ticketsData.status === 'fulfilled' ? ticketsData.value : []);
+        setNotices(noticesData.status === 'fulfilled' ? noticesData.value.slice(0, 5) : []);
+        // Analytics is optional — try separately
+        api.getAnalytics().then(d => { if (d) setAnalytics(d); }).catch(() => {});
       } catch (err) {
         console.error('Dashboard fetch error:', err);
       } finally {

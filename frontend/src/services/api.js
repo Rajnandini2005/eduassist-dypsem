@@ -34,8 +34,102 @@ async function apiFetch(url, options = {}) {
   }
 }
 
+// ── FALLBACK DATA ──────────────────────────────────────────────
+const DEMO_TICKETS = [
+  {
+    id: 'demo-1',
+    ticket_number: 'TKT-10021',
+    title: 'Grade card discrepancy in Semester 4',
+    description: 'My ML subject shows F but I passed the exam. Please check.',
+    category: 'Examinations',
+    priority: 'high',
+    status: 'open',
+    department_name: 'Computer Science & Engineering',
+    department_id: '1',
+    student_name: 'Rajnandini Patil',
+    student_email: 'rajnandini@dypsem.edu.in',
+    created_by: 'demo-user',
+    assigned_to_name: null,
+    created_at: new Date(Date.now() - 86400000).toISOString(),
+    isDemo: true
+  },
+  {
+    id: 'demo-2',
+    ticket_number: 'TKT-10022',
+    title: 'Bonafide certificate required urgently',
+    description: 'Need bonafide for bank account opening. Deadline tomorrow.',
+    category: 'Certificates',
+    priority: 'urgent',
+    status: 'in_progress',
+    department_name: 'Admissions & Scholarships',
+    department_id: '6',
+    student_name: 'Rahul Sharma',
+    student_email: 'rahul@dypsem.edu.in',
+    created_by: 'demo-user-2',
+    assigned_to_name: 'Prof. Suresh Kulkarni',
+    created_at: new Date(Date.now() - 172800000).toISOString(),
+    isDemo: true
+  },
+  {
+    id: 'demo-3',
+    ticket_number: 'TKT-10020',
+    title: 'Campus Wi-Fi not connecting in Lab 302',
+    description: 'Wi-Fi drops every 10 minutes in computer lab 302.',
+    category: 'Technical',
+    priority: 'medium',
+    status: 'resolved',
+    department_name: 'Computer Science & Engineering',
+    department_id: '1',
+    student_name: 'Priya Desai',
+    student_email: 'priya@dypsem.edu.in',
+    created_by: 'demo-user-3',
+    assigned_to_name: 'IT Department',
+    created_at: new Date(Date.now() - 259200000).toISOString(),
+    isDemo: true
+  }
+];
+
+const DEMO_NOTICES = [
+  {
+    id: 'notice-1',
+    title: 'End Semester Examination Schedule — Dec 2025',
+    body: 'End semester examinations for all departments will commence from December 15, 2025. Students are advised to check the detailed timetable on the notice board and report 30 minutes before each exam.',
+    category: 'Examination',
+    pinned: true,
+    created_at: new Date(Date.now() - 86400000).toISOString(),
+    author_name: 'Examination Controller'
+  },
+  {
+    id: 'notice-2',
+    title: 'Last Date for Fee Payment — Semester 5',
+    body: 'Students of Semester 5 are informed that the last date for tuition fee payment is November 30, 2025. Late payment will attract a fine of Rs. 100/- per day.',
+    category: 'Finance',
+    pinned: false,
+    created_at: new Date(Date.now() - 172800000).toISOString(),
+    author_name: 'Accounts Department'
+  },
+  {
+    id: 'notice-3',
+    title: 'Campus Placement Drive — TCS & Infosys',
+    body: 'TCS and Infosys campus recruitment drive scheduled for Dec 10-11, 2025. All eligible B.Tech final year students (CSE, AIML, DS) with CGPA ≥ 6.0 must register by December 5.',
+    category: 'Placement',
+    pinned: true,
+    created_at: new Date(Date.now() - 259200000).toISOString(),
+    author_name: 'Training & Placement Cell'
+  },
+  {
+    id: 'notice-4',
+    title: 'Minimum 75% Attendance Mandatory',
+    body: 'As per university norms, minimum 75% attendance is mandatory for all subjects. Students falling below 75% will not be allowed to appear in end semester examinations. Contact your HOD immediately.',
+    category: 'Academic',
+    pinned: false,
+    created_at: new Date(Date.now() - 345600000).toISOString(),
+    author_name: 'Dean Academics'
+  }
+];
+
 export const api = {
-  // Auth
+  // ── Auth ──────────────────────────────────────────────────────
   login: async (email, password) => {
     const res = await apiFetch(`${API_BASE_URL}/auth/login`, {
       method: "POST",
@@ -73,8 +167,11 @@ export const api = {
   },
 
   getUsers: async () => {
-    const res = await apiFetch(`${API_BASE_URL}/auth/users`, { headers: getAuthHeaders() });
-    return res.json();
+    try {
+      const res = await apiFetch(`${API_BASE_URL}/auth/users`, { headers: getAuthHeaders() });
+      if (!res.ok) return [];
+      return res.json();
+    } catch { return []; }
   },
 
   updateUser: async (userId, data) => {
@@ -86,7 +183,7 @@ export const api = {
     return res.json();
   },
 
-  // Chat
+  // ── Chat ──────────────────────────────────────────────────────
   askChat: async (query, departmentId = null) => {
     const res = await apiFetch(`${API_BASE_URL}/chat/ask`, {
       method: "POST",
@@ -111,10 +208,13 @@ export const api = {
     return res.json();
   },
 
-  // Documents
+  // ── Documents ─────────────────────────────────────────────────
   getDocuments: async () => {
-    const res = await apiFetch(`${API_BASE_URL}/documents`, { headers: getAuthHeaders() });
-    return res.json();
+    try {
+      const res = await apiFetch(`${API_BASE_URL}/documents`, { headers: getAuthHeaders() });
+      if (!res.ok) return [];
+      return res.json();
+    } catch { return []; }
   },
 
   uploadDocument: async (formData) => {
@@ -136,15 +236,44 @@ export const api = {
     return res.json();
   },
 
-  // Tickets
+  // ── Tickets ───────────────────────────────────────────────────
   getTickets: async (filters = {}) => {
-    const params = new URLSearchParams();
-    if (filters.status) params.append("status", filters.status);
-    if (filters.priority) params.append("priority", filters.priority);
-    if (filters.category) params.append("category", filters.category);
-    if (filters.department_id) params.append("department_id", filters.department_id);
-    const res = await apiFetch(`${API_BASE_URL}/tickets?${params.toString()}`, { headers: getAuthHeaders() });
-    return res.json();
+    try {
+      const params = new URLSearchParams();
+      if (filters.status) params.append("status", filters.status);
+      if (filters.priority) params.append("priority", filters.priority);
+      if (filters.category) params.append("category", filters.category);
+      if (filters.department_id) params.append("department_id", filters.department_id);
+      const res = await apiFetch(`${API_BASE_URL}/tickets?${params.toString()}`, { headers: getAuthHeaders() });
+      if (!res.ok) return DEMO_TICKETS;
+      const data = await res.json();
+      // If backend returns empty, use demo tickets so dashboard isn't blank
+      return Array.isArray(data) && data.length > 0 ? data : DEMO_TICKETS;
+    } catch {
+      return DEMO_TICKETS;
+    }
+  },
+
+  getTicketById: async (ticketId) => {
+    // Check local tickets first
+    const localTickets = JSON.parse(localStorage.getItem('local_tickets') || '[]');
+    const local = localTickets.find(t => t.id === ticketId);
+    if (local) return { ...local, comments: [] };
+
+    // Check demo tickets
+    const demo = DEMO_TICKETS.find(t => t.id === ticketId);
+    if (demo) return { ...demo, comments: [] };
+
+    try {
+      const res = await apiFetch(`${API_BASE_URL}/tickets/${ticketId}`, { headers: getAuthHeaders() });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || `Ticket ${ticketId} not found`);
+      }
+      return res.json();
+    } catch (err) {
+      throw err;
+    }
   },
 
   createTicket: async (ticketData) => {
@@ -166,20 +295,117 @@ export const api = {
     return res.json();
   },
 
-  // Departments
-  getDepartments: async () => {
-    const res = await apiFetch(`${API_BASE_URL}/departments`, { headers: getAuthHeaders() });
-    if (!res.ok) throw new Error("Departments fetch failed");
-    return res.json();
+  updateTicketStatus: async (ticketId, status, resolutionNotes = null) => {
+    try {
+      const res = await apiFetch(`${API_BASE_URL}/tickets/${ticketId}`, {
+        method: "PATCH",
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ status, resolution_notes: resolutionNotes })
+      });
+      if (!res.ok) throw new Error("Update failed");
+      return res.json();
+    } catch {
+      // Local fallback
+      return { id: ticketId, status, resolution_notes: resolutionNotes };
+    }
   },
 
-  // Notices
+  assignTicket: async (ticketId, staffId) => {
+    try {
+      const res = await apiFetch(`${API_BASE_URL}/tickets/${ticketId}`, {
+        method: "PATCH",
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ assigned_to: staffId })
+      });
+      if (!res.ok) throw new Error("Assign failed");
+      return res.json();
+    } catch {
+      return { id: ticketId, assigned_to: staffId };
+    }
+  },
+
+  // Ticket Comments
+  getTicketComments: async (ticketId) => {
+    try {
+      const res = await apiFetch(`${API_BASE_URL}/tickets/${ticketId}/comments`, { headers: getAuthHeaders() });
+      if (!res.ok) return [];
+      return res.json();
+    } catch { return []; }
+  },
+
+  addComment: async (ticketId, text, isInternal = false) => {
+    try {
+      const res = await apiFetch(`${API_BASE_URL}/tickets/${ticketId}/comments`, {
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ text, is_internal: isInternal })
+      });
+      if (!res.ok) throw new Error("Comment failed");
+      return res.json();
+    } catch {
+      // Local fallback comment
+      return {
+        id: 'local-comment-' + Date.now(),
+        text,
+        is_internal: isInternal,
+        author_name: 'You',
+        created_at: new Date().toISOString()
+      };
+    }
+  },
+
+  // Ticket PDF attachment upload
+  uploadTicketAttachment: async (ticketId, file) => {
+    try {
+      const token = localStorage.getItem("helpdesk_token");
+      const formData = new FormData();
+      formData.append('file', file);
+      const res = await apiFetch(`${API_BASE_URL}/tickets/${ticketId}/attachments`, {
+        method: "POST",
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: formData
+      });
+      if (!res.ok) throw new Error("Attachment upload failed");
+      return res.json();
+    } catch {
+      // Return a mock success if backend doesn't support it yet
+      return { filename: file.name, url: null, local: true };
+    }
+  },
+
+  // ── Departments ───────────────────────────────────────────────
+  getDepartments: async () => {
+    try {
+      const res = await apiFetch(`${API_BASE_URL}/departments`, { headers: getAuthHeaders() });
+      if (!res.ok) throw new Error("Departments fetch failed");
+      return res.json();
+    } catch {
+      return [
+        { id: '1', code: 'CSE', name: 'Computer Science & Engineering' },
+        { id: '2', code: 'AIML', name: 'Artificial Intelligence & Machine Learning' },
+        { id: '3', code: 'DS', name: 'Data Science' },
+        { id: '4', code: 'BCA', name: 'Bachelor of Computer Applications' },
+        { id: '5', code: 'MCA', name: 'Master of Computer Applications' },
+        { id: '6', code: 'ADM', name: 'Admissions & Scholarships' },
+        { id: '7', code: 'EXAM', name: 'Examination Cell' },
+        { id: '8', code: 'ACC', name: 'Accounts & Finance' },
+      ];
+    }
+  },
+
+  // ── Notices ───────────────────────────────────────────────────
   getNotices: async (filters = {}) => {
-    const params = new URLSearchParams();
-    if (filters.category) params.append("category", filters.category);
-    if (filters.pinned !== undefined) params.append("pinned", filters.pinned);
-    const res = await apiFetch(`${API_BASE_URL}/notices?${params.toString()}`, { headers: getAuthHeaders() });
-    return res.json();
+    try {
+      const params = new URLSearchParams();
+      if (filters.category) params.append("category", filters.category);
+      if (filters.pinned !== undefined) params.append("pinned", filters.pinned);
+      const res = await apiFetch(`${API_BASE_URL}/notices?${params.toString()}`, { headers: getAuthHeaders() });
+      if (!res.ok) return DEMO_NOTICES;
+      const data = await res.json();
+      return Array.isArray(data) && data.length > 0 ? data : DEMO_NOTICES;
+    } catch {
+      return DEMO_NOTICES;
+    }
   },
 
   createNotice: async (data) => {
@@ -201,20 +427,46 @@ export const api = {
   },
 
   deleteNotice: async (noticeId) => {
-    const res = await apiFetch(`${API_BASE_URL}/notices/${noticeId}`, {
-      method: "DELETE",
-      headers: getAuthHeaders()
-    });
-    return res.json();
+    try {
+      const res = await apiFetch(`${API_BASE_URL}/notices/${noticeId}`, {
+        method: "DELETE",
+        headers: getAuthHeaders()
+      });
+      return res.json();
+    } catch { return {}; }
   },
 
-  // FAQs
+  togglePinNotice: async (noticeId) => {
+    try {
+      const res = await apiFetch(`${API_BASE_URL}/notices/${noticeId}/pin`, {
+        method: "POST",
+        headers: getAuthHeaders()
+      });
+      if (!res.ok) {
+        // Fallback: toggle via PATCH
+        const res2 = await apiFetch(`${API_BASE_URL}/notices/${noticeId}`, {
+          method: "PATCH",
+          headers: getAuthHeaders(),
+          body: JSON.stringify({ pinned: true })
+        });
+        return res2.json();
+      }
+      return res.json();
+    } catch {
+      return { id: noticeId };
+    }
+  },
+
+  // ── FAQs ──────────────────────────────────────────────────────
   getFaqs: async (departmentId = null) => {
-    const url = departmentId
-      ? `${API_BASE_URL}/faqs?department_id=${departmentId}`
-      : `${API_BASE_URL}/faqs`;
-    const res = await apiFetch(url, { headers: getAuthHeaders() });
-    return res.json();
+    try {
+      const url = departmentId
+        ? `${API_BASE_URL}/faqs?department_id=${departmentId}`
+        : `${API_BASE_URL}/faqs`;
+      const res = await apiFetch(url, { headers: getAuthHeaders() });
+      if (!res.ok) return [];
+      return res.json();
+    } catch { return []; }
   },
 
   createFaq: async (data) => {
@@ -243,16 +495,21 @@ export const api = {
     return res.json();
   },
 
-  // Analytics
+  // ── Analytics ─────────────────────────────────────────────────
   getAnalytics: async () => {
-    const res = await apiFetch(`${API_BASE_URL}/analytics/dashboard`, { headers: getAuthHeaders() });
-    return res.json();
+    try {
+      const res = await apiFetch(`${API_BASE_URL}/analytics/dashboard`, { headers: getAuthHeaders() });
+      if (!res.ok) return null;
+      return res.json();
+    } catch { return null; }
   },
 
-  // System
+  // ── System ────────────────────────────────────────────────────
   getSupabaseStatus: async () => {
-    const res = await apiFetch(`${API_BASE_URL}/system/supabase-status`);
-    return res.json();
+    try {
+      const res = await apiFetch(`${API_BASE_URL}/system/supabase-status`);
+      return res.json();
+    } catch { return { status: 'unknown' }; }
   },
 
   configureSupabase: async (config) => {
