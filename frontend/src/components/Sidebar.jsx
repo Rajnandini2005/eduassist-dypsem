@@ -1,4 +1,4 @@
-﻿import React from 'react';
+﻿import React, { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { 
   LayoutDashboard, 
@@ -18,11 +18,14 @@ import {
   X
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { getAvatarUrl } from '../utils/avatar';
 
 export default function Sidebar({ isOpen, setIsOpen }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const role = user?.role || 'student';
+  const [avatarError, setAvatarError] = useState(false);
+  const avatarUrl = getAvatarUrl(user);
 
   const handleLogout = () => {
     logout();
@@ -153,11 +156,21 @@ export default function Sidebar({ isOpen, setIsOpen }) {
         <div className="p-4 border-t border-slate-200 bg-slate-50/60">
           <div className="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-white border border-slate-200 shadow-sm">
             <div className="flex items-center gap-2.5 min-w-0">
-              <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-black text-sm text-white flex-shrink-0 ${
-                role === 'admin' ? 'bg-blue-900' : role === 'faculty' ? 'bg-amber-600' : 'bg-emerald-700'
-              }`}>
-                {user?.full_name?.charAt(0) || 'U'}
-              </div>
+              {/* Gender-based avatar */}
+              {!avatarError ? (
+                <img
+                  src={avatarUrl}
+                  alt={user?.full_name || 'User'}
+                  onError={() => setAvatarError(true)}
+                  className="w-9 h-9 rounded-xl object-cover border-2 border-slate-200 flex-shrink-0"
+                />
+              ) : (
+                <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-black text-sm text-white flex-shrink-0 ${
+                  role === 'admin' ? 'bg-blue-900' : role === 'faculty' ? 'bg-amber-600' : 'bg-emerald-700'
+                }`}>
+                  {user?.full_name?.charAt(0) || 'U'}
+                </div>
+              )}
               <div className="min-w-0">
                 <p className="text-xs font-bold text-slate-900 truncate">{user?.full_name || 'User'}</p>
                 <div className="flex items-center gap-1.5 mt-0.5">

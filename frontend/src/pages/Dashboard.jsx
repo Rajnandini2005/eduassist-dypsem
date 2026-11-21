@@ -13,6 +13,7 @@ import TicketModal from '../components/TicketModal';
 import NoticeEditModal from '../components/NoticeEditModal';
 import FaqModal from '../components/FaqModal';
 import StatCard from '../components/StatCard';
+import { getAvatarUrl } from '../utils/avatar';
 
 // ─── Shared helpers ──────────────────────────────────────────
 const getPriorityColor = (p) => {
@@ -77,8 +78,10 @@ function TicketRow({ ticket, onClick }) {
 // STUDENT DASHBOARD
 // ═══════════════════════════════════════════════════════════════
 function StudentDashboard({ user, tickets, notices, loading, navigate, setIsTicketModalOpen }) {
-  const myTickets = tickets.filter(t => t.created_by === user?.id || t.student_email === user?.email);
+  const myTickets = tickets.filter(t => t.created_by === user?.id || t.student_email === user?.email || t.isDemo || t.isLocal);
   const openCount = myTickets.filter(t => t.status === 'open' || t.status === 'in_progress').length;
+  const avatarUrl = getAvatarUrl(user);
+  const [avatarErr, setAvatarErr] = useState(false);
 
   const quickActions = [
     { icon: PlusCircle,  label: 'Create Ticket',  color: 'text-blue-700',    bg: 'bg-blue-50',    action: () => setIsTicketModalOpen(true) },
@@ -102,8 +105,20 @@ function StudentDashboard({ user, tickets, notices, loading, navigate, setIsTick
               <h2 className="text-xl font-black text-white mt-0.5">Hello, {user?.full_name?.split(' ')[0]} 🎓</h2>
               <p className="text-blue-200 text-xs mt-1">B.Tech · D. Y. Patil School of Engg. & Mgmt.</p>
             </div>
-            <div className="w-12 h-12 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center font-black text-lg text-amber-300">
-              {user?.full_name?.charAt(0) || 'S'}
+            {/* Gender-based avatar */}
+            <div className="w-14 h-14 rounded-2xl overflow-hidden border-2 border-white/30 shadow-lg flex-shrink-0">
+              {!avatarErr ? (
+                <img
+                  src={avatarUrl}
+                  alt={user?.full_name}
+                  onError={() => setAvatarErr(true)}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full bg-white/10 flex items-center justify-center font-black text-lg text-amber-300">
+                  {user?.full_name?.charAt(0) || 'S'}
+                </div>
+              )}
             </div>
           </div>
 
@@ -231,8 +246,16 @@ function FacultyDashboard({ user, tickets, notices, analytics, navigate, setIsNo
             <h2 className="text-xl font-black text-white mt-0.5">Hello, {user?.full_name?.split(' ')[0]} 👨‍🏫</h2>
             <p className="text-blue-200 text-xs mt-1">DYPSEM · Department Coordinator</p>
           </div>
-          <div className="w-12 h-12 rounded-2xl bg-amber-500/20 border border-amber-400/30 flex items-center justify-center font-black text-lg text-amber-300">
-            {user?.full_name?.charAt(0) || 'F'}
+          <div className="w-14 h-14 rounded-2xl overflow-hidden border-2 border-amber-400/40 shadow-lg flex-shrink-0">
+            <img
+              src={getAvatarUrl(user)}
+              alt={user?.full_name}
+              onError={(e) => { e.target.onerror=null; e.target.style.display='none'; e.target.nextSibling.style.display='flex'; }}
+              className="w-full h-full object-cover"
+            />
+            <div className="w-full h-full bg-amber-500/20 items-center justify-center font-black text-lg text-amber-300 hidden">
+              {user?.full_name?.charAt(0) || 'F'}
+            </div>
           </div>
         </div>
         <div className="flex items-center gap-2 mt-2">
@@ -309,8 +332,16 @@ function AdminDashboard({ user, tickets, notices, analytics, navigate, setIsTick
             <h2 className="text-xl font-black text-white mt-0.5">Executive Command 🏛️</h2>
             <p className="text-blue-200 text-xs mt-1">DYPSEM Central Administrator</p>
           </div>
-          <div className="w-12 h-12 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center font-black text-lg text-amber-300">
-            {user?.full_name?.charAt(0) || 'A'}
+          <div className="w-14 h-14 rounded-2xl overflow-hidden border-2 border-white/30 shadow-lg flex-shrink-0">
+            <img
+              src={getAvatarUrl(user)}
+              alt={user?.full_name}
+              onError={(e) => { e.target.onerror=null; e.target.style.display='none'; e.target.nextSibling.style.display='flex'; }}
+              className="w-full h-full object-cover"
+            />
+            <div className="w-full h-full bg-white/10 items-center justify-center font-black text-lg text-amber-300 hidden">
+              {user?.full_name?.charAt(0) || 'A'}
+            </div>
           </div>
         </div>
         <div className="flex items-center gap-2 mt-2 flex-wrap">
