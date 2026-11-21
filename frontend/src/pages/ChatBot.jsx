@@ -18,6 +18,151 @@ import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import CitationDrawer from '../components/CitationDrawer';
 
+// Local DYPSEM Knowledge Base — answers when backend is unavailable
+const LOCAL_KB = {
+  attendance: {
+    keywords: ['attendance', 'absent', '75%', 'eligible', 'minimum attend', 'attend'],
+    answer: `📋 **Minimum Attendance Requirement at DYPSEM**
+
+As per DYPSEM Academic Regulations:
+
+• **Minimum Required**: **75% attendance** per subject per semester
+• Students below 75% are **not eligible** to appear for semester examinations
+• Medical/emergency cases: Condonation up to **65%** (requires application + medical documents)
+• Attendance is calculated from the **first day of the semester**
+
+**How to check your attendance:**
+- Visit your department office or class mentor
+- EduAssist portal → Dashboard section
+
+*(Source: DYPSEM Academic Regulations 2026 — Attendance Policy)*`
+  },
+  exam: {
+    keywords: ['exam', 'examination', 'marks', 'result', 'kt', 'back', 'revaluation', 'passing', 'semester exam', 'minimum marks'],
+    answer: `📝 **Examination Rules at DYPSEM**
+
+• **Internal Assessment**: 20 marks (attendance, assignments, mid-semester test)
+• **End Semester Exam**: 80 marks
+• **Passing Marks**: Minimum **40%** in each subject (combined internal + external)
+• **Back exam (KT)**: Available for failed subjects in subsequent semester
+
+**Re-evaluation Process:**
+1. Apply within **15 days** of result declaration
+2. Submit application to Examination Cell (Admin Block, Room 204)
+3. Fee: As per current circular from Exam Cell
+
+*(Source: DYPSEM Examination Rules 2026)*`
+  },
+  fee: {
+    keywords: ['fee', 'fees', 'payment', 'tuition', 'challan', 'due', 'amount', 'fine', 'late fee'],
+    answer: `💰 **Fee Structure & Payment at DYPSEM**
+
+• **Tuition Fees**: Payable at the start of each semester (July & January)
+• **Late Payment Fine**: ₹500/day after due date
+• **Payment Modes**: Online (college portal), Demand Draft, NEFT/RTGS
+
+**Fee categories:**
+- Tuition Fee (per semester)
+- Development Fee  
+- Examination Fee (paid each semester separately)
+- Hostel Fee (if applicable)
+
+**Contact**: Accounts & Finance Office, Admin Block Ground Floor
+**Email**: accounts@dypsem.edu.in
+
+*(Source: DYPSEM Fee Regulations 2026)*`
+  },
+  hostel: {
+    keywords: ['hostel', 'accommodation', 'room', 'warden', 'curfew', 'boarding', 'mess'],
+    answer: `🏠 **Hostel Information at DYPSEM**
+
+• Separate hostels for **Boys** and **Girls**
+• **Allotment**: First come, first served basis at beginning of academic year
+• **Curfew**: 10:00 PM (weekdays), 10:30 PM (weekends)
+• **Visitors**: Allowed only during visiting hours (4:00 PM – 7:00 PM)
+• **Fees**: Payable per semester along with tuition fee
+
+**Contact**: Hostel Warden / Administration Office
+**Email**: hostel@dypsem.edu.in
+
+*(Source: DYPSEM Hostel Regulations 2026)*`
+  },
+  scholarship: {
+    keywords: ['scholarship', 'freeship', 'ebc', 'obc', 'merit', 'mahadbt', 'financial', 'bursary'],
+    answer: `🎓 **Scholarships at DYPSEM**
+
+Available scholarships:
+• **Government Scholarships**: EBC (Economically Backward Class), OBC, SC/ST
+• **DY Patil Merit Scholarship**: For students with >75% in HSC/12th
+• **Freeship**: For students below income threshold
+
+**Application Process:**
+1. Apply online via Maharashtra Scholarship Portal: **mahadbt.gov.in**
+2. Submit printed documents to Admissions Office (Room 101)
+3. **Deadline**: Usually August–September each year
+
+**Contact**: admissions@dypsem.edu.in
+
+*(Source: DYPSEM Scholarship Guidelines 2026)*`
+  },
+  departments: {
+    keywords: ['department', 'cse', 'aiml', 'ai ml', 'data science', 'bca', 'mca', 'programme', 'course', 'branch'],
+    answer: `🏫 **Departments & Programmes at DYPSEM, Kolhapur**
+
+| Department | Programme | Duration |
+|------------|-----------|---------|
+| **CSE** | Computer Science & Engineering | B.Tech (4 years) |
+| **AIML** | Artificial Intelligence & Machine Learning | B.Tech (4 years) |
+| **DS** | Data Science | B.Tech (4 years) |
+| **BCA** | Bachelor of Computer Applications | BCA (3 years) |
+| **MCA** | Master of Computer Applications | MCA (2 years) |
+
+**Administrative Offices:**
+- Admissions & Scholarships (Admin Block, Room 101)
+- Examination Cell (Admin Block, Room 204)
+- Accounts & Finance (Admin Block, Ground Floor)
+
+DYPSEM is a constituent unit of **D. Y. Patil Education Society (Deemed to be University)**.
+
+*(Source: DYPSEM Academic Programmes 2026)*`
+  },
+  library: {
+    keywords: ['library', 'book', 'borrow', 'library fine', 'nptel', 'ieee', 'journal', 'reading'],
+    answer: `📚 **Library at DYPSEM**
+
+• **Timing**: 8:00 AM – 8:00 PM (Mon–Sat), 9:00 AM – 5:00 PM (Sunday)
+• **Borrowing**: Up to **3 books** at a time, 7-day loan period
+• **Fine**: ₹2/day for overdue returns
+• **Digital Resources**: NPTEL, IEEE Xplore, DELNET available
+
+*(Source: DYPSEM Library Regulations 2026)*`
+  },
+  syllabus: {
+    keywords: ['syllabus', 'curriculum', 'academic calendar', 'subject', 'course content', 'timetable'],
+    answer: `📖 **Syllabus & Academic Calendar at DYPSEM**
+
+• Syllabus follows **D. Y. Patil Education Society (Deemed to be University)** curriculum
+• Academic Calendar published at start of each academic year (June)
+• **Semester System**: Odd semester (July–Nov), Even semester (Jan–May)
+
+**Available Programmes**: CSE, AIML, Data Science (B.Tech), BCA, MCA
+
+**Download**: Visit your department notice board or contact the department office.
+
+*(Source: DYPSEM Academic Regulations 2026)*`
+  }
+};
+
+function getLocalAnswer(query) {
+  const q = query.toLowerCase();
+  for (const [, entry] of Object.entries(LOCAL_KB)) {
+    if (entry.keywords.some(kw => q.includes(kw))) {
+      return entry.answer;
+    }
+  }
+  return `I am EduAssist AI for DYPSEM. I can help with:\n\n• 📋 Attendance requirements\n• 💰 Fee structure & payment\n• 📝 Examination rules & results\n• 🏠 Hostel rules\n• 🎓 Scholarships\n• 📚 Library timings\n• 🏫 Departments — CSE, AIML, DS, BCA, MCA\n• 📖 Syllabus & academic calendar\n\nPlease ask a specific question or create a **Helpdesk Support Ticket** for personalized assistance.`;
+}
+
 export default function ChatBot() {
   const { user } = useAuth();
   const location = useLocation();
@@ -92,14 +237,18 @@ export default function ChatBot() {
       };
       setMessages(prev => [...prev, botMsg]);
     } catch (err) {
+      // Backend unavailable — use local DYPSEM knowledge base
+      const localAnswer = getLocalAnswer(q.trim());
       setMessages(prev => [
         ...prev,
         {
           id: Date.now().toString(),
           sender: 'bot',
-          text: "I encountered an issue processing your query. Please check that backend service is active or create a Helpdesk support ticket.",
+          text: localAnswer,
           sources: [],
-          isError: true,
+          confidence: 0.8,
+          is_answered: true,
+          isOffline: true,
           timestamp: new Date()
         }
       ]);

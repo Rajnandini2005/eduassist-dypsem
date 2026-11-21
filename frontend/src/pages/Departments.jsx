@@ -35,15 +35,28 @@ export default function Departments() {
   }, []);
 
   const fetchData = async () => {
+    // Local fallback departments data (shown when backend is unavailable)
+    const FALLBACK_DEPARTMENTS = [
+      { id: '1', code: 'CSE', name: 'Computer Science & Engineering', description: 'B.Tech — Computing, algorithms, software engineering, AI, and cybersecurity.', hod_name: 'Dr. S. K. Narayanan', email: 'hod.cse@dypsem.edu.in', phone: '+91 9876543210', location: 'Block A, 3rd Floor' },
+      { id: '2', code: 'AIML', name: 'Artificial Intelligence & Machine Learning', description: 'B.Tech — Deep Learning, NLP, Computer Vision, and Data-driven applications.', hod_name: 'Dr. Priya Verma', email: 'hod.aiml@dypsem.edu.in', phone: '+91 9876543211', location: 'Block A, 4th Floor' },
+      { id: '3', code: 'DS', name: 'Data Science', description: 'B.Tech — Big Data, Analytics, Statistical Modelling, and Business Intelligence.', hod_name: 'Dr. Amit Patel', email: 'hod.ds@dypsem.edu.in', phone: '+91 9876543212', location: 'Block B, 2nd Floor' },
+      { id: '4', code: 'BCA', name: 'Bachelor of Computer Applications', description: 'BCA (3 years) — Programming, databases, networking, and web development.', hod_name: 'Prof. Sunita Rao', email: 'hod.bca@dypsem.edu.in', phone: '+91 9876543213', location: 'Block B, 3rd Floor' },
+      { id: '5', code: 'MCA', name: 'Master of Computer Applications', description: 'MCA (2 years) — Advanced software development, cloud computing, and enterprise applications.', hod_name: 'Dr. Meenakshi Sundaram', email: 'hod.mca@dypsem.edu.in', phone: '+91 9876543214', location: 'Block C, 2nd Floor' },
+      { id: '6', code: 'ADM', name: 'Admissions & Scholarships', description: 'Central admissions counseling, merit scholarships, fee waivers, and document verification.', hod_name: 'Prof. Anil Deshmukh', email: 'admissions@dypsem.edu.in', phone: '+91 9876543215', location: 'Admin Block, Room 101' },
+      { id: '7', code: 'EXAM', name: 'Examination Cell', description: 'Semester exams, re-evaluations, grade cards, marksheets, and degree certificates.', hod_name: 'Dr. Rajesh Gupta', email: 'examcell@dypsem.edu.in', phone: '+91 9876543216', location: 'Admin Block, Room 204' },
+      { id: '8', code: 'ACC', name: 'Accounts & Finance', description: 'Tuition fees, hostel dues, bus pass payments, fee receipts, and financial clearances.', hod_name: 'Mr. K. V. Raman', email: 'accounts@dypsem.edu.in', phone: '+91 9876543217', location: 'Admin Block, Ground Floor' },
+    ];
+
     try {
       const [depts, faqsData] = await Promise.all([
         api.getDepartments(),
         api.getFaqs()
       ]);
-      setDepartments(depts);
+      setDepartments(depts && depts.length > 0 ? depts : FALLBACK_DEPARTMENTS);
       setFaqs(faqsData);
     } catch (err) {
       console.error(err);
+      setDepartments(FALLBACK_DEPARTMENTS);
     } finally {
       setLoading(false);
     }

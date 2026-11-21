@@ -424,14 +424,6 @@ export default function Login() {
           ))}
         </div>
 
-        {/* Credentials hint box */}
-        <div className="p-3 bg-blue-50 border border-blue-100 rounded-xl mb-4">
-          <p className="text-[10px] font-bold text-[#0f2d52] mb-1">🔑 Your Login Credentials:</p>
-          <p className="text-[10px] text-slate-600">📧 Email: <span className="font-bold">rajnandini@dypsem.edu.in</span></p>
-          <p className="text-[10px] text-slate-600">🔒 Password: <span className="font-bold">EduAssist@2025#Dyp</span></p>
-          <p className="text-[9px] text-slate-400 mt-1">Or use Quick Access buttons above for demo mode</p>
-        </div>
-
         {/* Footer */}
         <p className="text-center text-[10px] text-slate-400">
           AI-Powered Helpdesk · DYPSEM · Kolhapur
