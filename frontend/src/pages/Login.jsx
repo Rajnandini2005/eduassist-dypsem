@@ -93,22 +93,19 @@ export default function Login() {
 
         <div className="relative z-10 flex flex-col items-center gap-3">
 
-          {/* Official DYPSEM College Logo */}
-          <div className="w-28 h-16 flex items-center justify-center">
+          {/* EduAssist New Logo */}
+          <div className="w-40 h-24 flex items-center justify-center">
             <img
-              src="/dypsem-logo.jpg"
-              alt="D. Y. Patil School of Engineering & Management"
-              className="max-h-16 max-w-full object-contain drop-shadow-lg"
-              style={{ filter: 'brightness(1.08) contrast(1.05)' }}
+              src="/eduassist-logo-new.jpg"
+              alt="EduAssist"
+              className="max-h-24 max-w-full object-contain drop-shadow-lg rounded-xl"
             />
           </div>
 
-          {/* App name below logo */}
-          <div className="mt-2 flex items-center gap-2 bg-white/10 px-4 py-1.5 rounded-full">
-            {/* EduAssist mini logo */}
-            <img src="/logo.svg" alt="" className="w-5 h-5" />
-            <span className="text-white font-black text-sm tracking-wide">EduAssist</span>
-            <span className="text-blue-200 text-xs">· Your Smart College Helpdesk</span>
+          {/* DYPSEM college name pill */}
+          <div className="mt-1 flex items-center gap-2 bg-white/10 px-4 py-1.5 rounded-full">
+            <img src="/dypsem-logo.jpg" alt="" className="w-5 h-5 object-contain rounded" style={{filter:'brightness(2)'}} />
+            <span className="text-white font-bold text-xs tracking-wide">DYPSEM · Kolhapur</span>
           </div>
 
           <div className="mt-1">
@@ -123,8 +120,8 @@ export default function Login() {
 
         {/* College name strip */}
         <div className="flex items-center gap-3 mb-5 p-3.5 rounded-2xl bg-blue-50 border border-blue-100">
-          <div className="w-10 h-10 rounded-xl bg-[#0f2d52] flex items-center justify-center flex-shrink-0 overflow-hidden p-1">
-            <img src="/dypsem-logo.jpg" alt="" className="w-full h-full object-contain" style={{ filter: 'brightness(10)' }} />
+          <div className="w-12 h-12 rounded-xl bg-white flex items-center justify-center flex-shrink-0 overflow-hidden shadow border border-blue-100">
+            <img src="/dypsem-logo.jpg" alt="" className="w-full h-full object-contain p-0.5" />
           </div>
           <div>
             <p className="text-[11px] font-black text-[#0f2d52] leading-tight">

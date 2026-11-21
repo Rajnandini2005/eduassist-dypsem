@@ -83,11 +83,10 @@ export default function Sidebar({ isOpen, setIsOpen }) {
         {/* DYPSEM Header */}
         <div className="bg-[#1e3a5f] px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center shadow-md flex-shrink-0 overflow-hidden">
-              <img src="/logo.svg" alt="DYPSEM" className="w-9 h-9 object-contain" onError={(e) => {
+            <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center shadow-md flex-shrink-0 overflow-hidden p-0.5">
+              <img src="/eduassist-logo-new.jpg" alt="EduAssist" className="w-full h-full object-contain rounded-lg" onError={(e) => {
                 e.target.onerror = null;
-                e.target.style.display = 'none';
-                e.target.parentElement.innerHTML = '<div class="text-blue-900 font-black text-sm">EA</div>';
+                e.target.src = '/logo.svg';
               }} />
             </div>
             <div className="min-w-0">
