@@ -1,14 +1,12 @@
 ﻿{
-  "name": "EduAssist â€“ DYPSEM Helpdesk",
+  "name": "EduAssist – DYPSEM Helpdesk",
   "short_name": "EduAssist",
-  "description": "D. Y. Patil School of Engineering & Management â€“ AI-Powered Student Helpdesk & Academic Assistance",
+  "description": "AI-powered Student Helpdesk for DYPSEM, Kolhapur",
   "start_url": "/",
   "display": "standalone",
-  "orientation": "portrait-primary",
-  "theme_color": "#1e3a5f",
-  "background_color": "#f8fafc",
-  "lang": "en",
-  "scope": "/",
+  "background_color": "#0f2d52",
+  "theme_color": "#0f2d52",
+  "orientation": "portrait",
   "icons": [
     {
       "src": "/icons/icon-192.png",
@@ -27,29 +25,19 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
-    },
-    {
-      "src": "/favicon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "any"
     }
   ],
   "categories": ["education", "productivity"],
   "shortcuts": [
     {
-      "name": "Ask AI",
-      "short_name": "AI Chat",
-      "description": "Open the AI Student Assistant",
+      "name": "AI Chat",
       "url": "/chat",
-      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+      "description": "Ask EduAssist AI"
     },
     {
       "name": "My Tickets",
-      "short_name": "Tickets",
-      "description": "View grievance tickets",
       "url": "/tickets",
-      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+      "description": "View support tickets"
     }
   ]
 }
