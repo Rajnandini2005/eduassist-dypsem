@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" fill="none">
+  <!-- Background: deep navy rounded square -->
+  <rect width="200" height="200" rx="40" fill="#0f2d52"/>
+
+  <!-- Subtle radial glow at top -->
+  <radialGradient id="glow" cx="50%" cy="30%" r="60%">
+    <stop offset="0%" stop-color="#1e4d8c" stop-opacity="0.6"/>
+    <stop offset="100%" stop-color="#0f2d52" stop-opacity="0"/>
+  </radialGradient>
+  <rect width="200" height="200" rx="40" fill="url(#glow)"/>
+
+  <!-- === GRADUATION CAP === -->
+  <!-- Cap board: amber rounded rect -->
+  <rect x="38" y="72" width="124" height="18" rx="9" fill="#f59e0b"/>
+
+  <!-- Cap top: diamond/polygon in navy with amber outline -->
+  <polygon points="100,30 38,72 162,72" fill="#1a3f6f"/>
+  <polygon points="100,30 38,72 162,72" fill="none" stroke="#f59e0b" stroke-width="2.5" stroke-linejoin="round"/>
+
+  <!-- White highlight on cap board left edge -->
+  <rect x="38" y="72" width="10" height="18" rx="4" fill="white" opacity="0.15"/>
+
+  <!-- Tassel string -->
+  <line x1="162" y1="81" x2="162" y2="104" stroke="#f59e0b" stroke-width="4" stroke-linecap="round"/>
+  <!-- Tassel ball -->
+  <circle cx="162" cy="110" r="7" fill="#f59e0b"/>
+  <!-- Tassel fringe -->
+  <line x1="156" y1="110" x2="150" y2="122" stroke="#f59e0b" stroke-width="2.5" stroke-linecap="round"/>
+  <line x1="162" y1="117" x2="162" y2="128" stroke="#f59e0b" stroke-width="2.5" stroke-linecap="round"/>
+  <line x1="168" y1="110" x2="174" y2="122" stroke="#f59e0b" stroke-width="2.5" stroke-linecap="round"/>
+
+  <!-- === CHAT BUBBLE (overlapping lower half) === -->
+  <!-- Main bubble: white rounded rectangle -->
+  <rect x="34" y="108" width="120" height="62" rx="16" fill="white"/>
+  <!-- Bubble tail: pointing bottom-left -->
+  <path d="M50 170 L34 192 L80 170 Z" fill="white"/>
+
+  <!-- Three chat dots inside bubble -->
+  <circle cx="64" cy="139" r="7" fill="#0f2d52"/>
+  <circle cx="88" cy="139" r="7" fill="#0f2d52" opacity="0.6"/>
+  <circle cx="112" cy="139" r="7" fill="#0f2d52" opacity="0.35"/>
+</svg>

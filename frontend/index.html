@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+
+    <!-- PWA Primary Meta -->
+    <title>EduAssist – DYPSEM Helpdesk</title>
+    <meta name="description" content="D. Y. Patil School of Engineering & Management – AI-Powered Student Helpdesk, Ticket System & Academic Assistance. Kasaba Bawada, Kolhapur." />
+    <meta name="application-name" content="EduAssist" />
+    <meta name="theme-color" content="#1e3a5f" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="EduAssist" />
+    <meta name="msapplication-TileColor" content="#1e3a5f" />
+    <meta name="format-detection" content="telephone=no" />
+
+    <!-- Manifest -->
+    <link rel="manifest" href="/manifest.json" />
+
+    <!-- Icons -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+    <link rel="apple-touch-icon" sizes="192x192" href="/icons/icon-192.png" />
+    <link rel="apple-touch-icon" sizes="512x512" href="/icons/icon-512.png" />
+
+    <!-- iOS splash-screen safe area -->
+    <meta name="apple-touch-fullscreen" content="yes" />
+
+    <!-- Open Graph (for sharing) -->
+    <meta property="og:title" content="EduAssist – DYPSEM" />
+    <meta property="og:description" content="AI-Powered Student Helpdesk for D. Y. Patil School of Engineering & Management, Kolhapur" />
+    <meta property="og:type" content="website" />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+
+    <!-- PWA Service Worker Registration -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js')
+            .then(reg => console.log('[EduAssist] SW registered:', reg.scope))
+            .catch(err => console.warn('[EduAssist] SW registration failed:', err));
+        });
+      }
+    </script>
+  </body>
+</html>
