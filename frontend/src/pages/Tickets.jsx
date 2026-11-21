@@ -16,6 +16,17 @@ import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import TicketModal from '../components/TicketModal';
 
+const FALLBACK_DEPTS = [
+  { id: '1', code: 'CSE', name: 'Computer Science & Engineering' },
+  { id: '2', code: 'AIML', name: 'Artificial Intelligence & Machine Learning' },
+  { id: '3', code: 'DS', name: 'Data Science' },
+  { id: '4', code: 'BCA', name: 'Bachelor of Computer Applications' },
+  { id: '5', code: 'MCA', name: 'Master of Computer Applications' },
+  { id: '6', code: 'ADM', name: 'Admissions & Scholarships' },
+  { id: '7', code: 'EXAM', name: 'Examination Cell' },
+  { id: '8', code: 'ACC', name: 'Accounts & Finance' },
+];
+
 export default function Tickets() {
   const { user } = useAuth();
   const role = user?.role || 'student';
@@ -34,6 +45,8 @@ export default function Tickets() {
 
   const fetchTickets = async () => {
     setLoading(true);
+    // Load local tickets first
+    const localTickets = JSON.parse(localStorage.getItem('local_tickets') || '[]');
     try {
       const [ticketsData, deptsData] = await Promise.all([
         api.getTickets({
@@ -44,10 +57,16 @@ export default function Tickets() {
         }),
         api.getDepartments()
       ]);
-      setTickets(ticketsData);
-      setDepartments(deptsData);
+      // Merge: real tickets + any local-only tickets not synced
+      const realIds = new Set(ticketsData.map(t => t.id));
+      const unsynced = localTickets.filter(t => !realIds.has(t.id));
+      setTickets([...unsynced, ...ticketsData]);
+      setDepartments(deptsData && deptsData.length > 0 ? deptsData : FALLBACK_DEPTS);
     } catch (err) {
-      console.error("Tickets fetch error:", err);
+      console.error('Tickets fetch error:', err);
+      // Show local tickets when backend unavailable
+      setTickets(localTickets);
+      setDepartments(FALLBACK_DEPTS);
     } finally {
       setLoading(false);
     }
