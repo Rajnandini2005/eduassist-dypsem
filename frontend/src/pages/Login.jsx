@@ -15,7 +15,6 @@ function getPasswordStrength(password) {
   if (/[a-z]/.test(password)) score++;
   if (/[0-9]/.test(password)) score++;
   if (/[^A-Za-z0-9]/.test(password)) score++;
-
   if (score <= 2) return { score, label: 'Weak', color: 'bg-red-400' };
   if (score === 3) return { score, label: 'Fair', color: 'bg-yellow-400' };
   if (score === 4) return { score, label: 'Good', color: 'bg-blue-400' };
@@ -36,7 +35,7 @@ export default function Login() {
   const { login, register, switchDemoRole } = useAuth();
   const navigate = useNavigate();
 
-  const [mode, setMode] = useState('home'); // 'home' | 'login' | 'signup'
+  const [mode, setMode] = useState('login'); // 'login' | 'signup'
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -45,12 +44,14 @@ export default function Login() {
   const [showPass, setShowPass] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
   const [selectedRole, setSelectedRole] = useState(null);
 
   const passwordStrength = getPasswordStrength(password);
   const passwordErrors = mode === 'signup' ? validatePassword(password) : [];
 
+  // ── LOGIN ────────────────────────────────────────────────────────
   const handleLogin = async (e) => {
     e.preventDefault();
     if (!email.trim() || !password.trim()) {
@@ -58,6 +59,7 @@ export default function Login() {
       return;
     }
     setError('');
+    setSuccess('');
     setLoading(true);
     try {
       await login(email.trim(), password);
@@ -65,9 +67,7 @@ export default function Login() {
     } catch (err) {
       const msg = err.message || '';
       if (msg === 'BACKEND_UNAVAILABLE' || msg === 'BACKEND_SLOW') {
-        setError('Server is starting up. If you created an account, please try again in 30 seconds.');
-      } else if (msg === 'WRONG_CREDENTIALS') {
-        setError('Email or password is wrong. Please check and try again.');
+        setError('Server is starting up. Please try again in 30 seconds.');
       } else {
         setError('Email or password is wrong. Please check and try again.');
       }
@@ -76,30 +76,42 @@ export default function Login() {
     }
   };
 
+  // ── SIGNUP — ALWAYS SUCCEEDS (local-first) ───────────────────────
   const handleSignup = async (e) => {
     e.preventDefault();
+    setError('');
+    setSuccess('');
+
+    // Client-side validation only
     if (!fullName.trim()) { setError('Please enter your full name.'); return; }
-    if (!email.trim()) { setError('Please enter your email.'); return; }
+    if (!email.trim()) { setError('Please enter your email address.'); return; }
     const pwdErrors = validatePassword(password);
     if (pwdErrors.length > 0) {
-      setError('Password must have: ' + pwdErrors.join(', '));
+      setError('Password needs: ' + pwdErrors.join(', '));
       return;
     }
     if (password !== confirmPassword) {
-      setError('Passwords do not match.');
+      setError('Passwords do not match. Please re-enter.');
       return;
     }
-    setError('');
+
     setLoading(true);
     try {
-      await register({ email: email.trim(), password, full_name: fullName.trim(), role: signupRole });
+      // register() ALWAYS succeeds locally — backend is optional
+      await register({
+        email: email.trim(),
+        password,
+        full_name: fullName.trim(),
+        role: signupRole,
+      });
+      // Success — go to dashboard
       navigate('/');
     } catch (err) {
       const msg = err.message || '';
       if (msg.includes('already registered') || msg.includes('already exists')) {
-        setError('This email is already registered. Please sign in instead.');
+        setError('This email is already registered. Please sign in.');
       } else {
-        // Any other error — still navigate (local save already done)
+        // Should never reach here — but if it does, navigate anyway
         navigate('/');
       }
     } finally {
@@ -107,22 +119,36 @@ export default function Login() {
     }
   };
 
+  // ── QUICK ACCESS ─────────────────────────────────────────────────
   const handleDemoRole = async (roleId) => {
     setError('');
+    setSuccess('');
     setSelectedRole(roleId);
     setLoading(true);
     try {
       await switchDemoRole(roleId);
       navigate('/');
-    } catch (err) {
-      setError('Could not connect. Please try again.');
+    } catch {
+      // switchDemoRole has its own fallback — should never fail
+      navigate('/');
     } finally {
       setLoading(false);
       setSelectedRole(null);
     }
   };
 
-  const roles = [
+  const switchMode = (newMode) => {
+    setMode(newMode);
+    setError('');
+    setSuccess('');
+    setEmail('');
+    setPassword('');
+    setConfirmPassword('');
+    setFullName('');
+    setSignupRole('student');
+  };
+
+  const demoRoles = [
     {
       id: 'student',
       label: 'Student',
@@ -162,20 +188,21 @@ export default function Login() {
               src="/eduassist-logo-new.jpg"
               alt="EduAssist"
               className="max-h-24 max-w-full object-contain drop-shadow-lg rounded-xl"
-              onError={(e) => { e.target.style.display='none'; }}
+              onError={(e) => { e.target.style.display = 'none'; }}
             />
           </div>
           <div className="mt-1 flex items-center gap-2 bg-white/10 px-4 py-1.5 rounded-full">
-            <img src="/dypsem-logo.jpg" alt="" className="w-5 h-5 object-contain rounded" style={{filter:'brightness(2)'}}
-              onError={(e) => { e.target.style.display='none'; }} />
+            <img src="/dypsem-logo.jpg" alt="" className="w-5 h-5 object-contain rounded"
+              style={{ filter: 'brightness(2)' }}
+              onError={(e) => { e.target.style.display = 'none'; }} />
             <span className="text-white font-bold text-xs tracking-wide">DYPSEM · Kolhapur</span>
           </div>
           <div className="mt-1">
             <p className="text-white/90 text-base font-semibold">
-              {mode === 'signup' ? 'Create Account 📝' : 'Welcome Back! 👋'}
+              {mode === 'signup' ? '📝 Create Your Account' : '👋 Welcome Back!'}
             </p>
             <p className="text-blue-200 text-xs mt-0.5">
-              {mode === 'signup' ? 'Register as a new user' : 'Sign in to continue'}
+              {mode === 'signup' ? 'Select your role and register' : 'Sign in to continue'}
             </p>
           </div>
         </div>
@@ -188,7 +215,7 @@ export default function Login() {
         <div className="flex items-center gap-3 mb-5 p-3.5 rounded-2xl bg-blue-50 border border-blue-100">
           <div className="w-12 h-12 rounded-xl bg-white flex items-center justify-center flex-shrink-0 overflow-hidden shadow border border-blue-100">
             <img src="/dypsem-logo.jpg" alt="DYPSEM" className="w-full h-full object-contain p-0.5"
-              onError={(e) => { e.target.style.display='none'; }} />
+              onError={(e) => { e.target.style.display = 'none'; }} />
           </div>
           <div>
             <p className="text-[11px] font-black text-[#0f2d52] leading-tight">
@@ -208,8 +235,16 @@ export default function Login() {
           </div>
         )}
 
-        {/* LOGIN FORM */}
-        {(mode === 'home' || mode === 'login') && (
+        {/* Success */}
+        {success && (
+          <div className="mb-4 flex items-start gap-2 p-3 bg-green-50 border border-green-200 rounded-xl text-xs text-green-700">
+            <CheckCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+            <span>{success}</span>
+          </div>
+        )}
+
+        {/* ── LOGIN FORM ── */}
+        {mode === 'login' && (
           <form onSubmit={handleLogin} className="space-y-4 mb-5">
             <div>
               <label className="block text-xs font-bold text-slate-600 mb-1.5">Email Address</label>
@@ -247,7 +282,7 @@ export default function Login() {
 
             <button type="submit" disabled={loading}
               className="w-full py-4 rounded-xl bg-[#0f2d52] hover:bg-blue-900 text-white text-sm font-black shadow-lg shadow-blue-900/25 transition-all flex items-center justify-center gap-2 disabled:opacity-60">
-              {loading && !selectedRole ? (
+              {loading ? (
                 <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /><span>Signing In...</span></>
               ) : (
                 <><span>Login</span><ArrowRight className="w-4 h-4" /></>
@@ -256,7 +291,7 @@ export default function Login() {
 
             <p className="text-center text-xs text-slate-500">
               New user?{' '}
-              <button type="button" onClick={() => { setMode('signup'); setError(''); }}
+              <button type="button" onClick={() => switchMode('signup')}
                 className="text-[#0f2d52] font-bold hover:underline">
                 Create Account
               </button>
@@ -264,9 +299,49 @@ export default function Login() {
           </form>
         )}
 
-        {/* SIGN UP FORM */}
+        {/* ── SIGNUP FORM ── */}
         {mode === 'signup' && (
           <form onSubmit={handleSignup} className="space-y-4 mb-5">
+
+            {/* ROLE SELECTOR — big prominent buttons at top */}
+            <div>
+              <label className="block text-xs font-bold text-slate-600 mb-2">
+                Select Your Role <span className="text-red-500">*</span>
+              </label>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setSignupRole('student')}
+                  className={`flex flex-col items-center gap-1.5 py-4 rounded-2xl border-2 text-sm font-bold transition-all ${
+                    signupRole === 'student'
+                      ? 'bg-[#0f2d52] border-[#0f2d52] text-white shadow-lg scale-105'
+                      : 'bg-white border-slate-200 text-slate-500 hover:border-blue-300'
+                  }`}
+                >
+                  <span className="text-2xl">🎓</span>
+                  <span>Student</span>
+                  <span className="text-[9px] opacity-70 font-normal">B.Tech / M.Tech / BCA / MCA</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSignupRole('faculty')}
+                  className={`flex flex-col items-center gap-1.5 py-4 rounded-2xl border-2 text-sm font-bold transition-all ${
+                    signupRole === 'faculty'
+                      ? 'bg-amber-500 border-amber-500 text-white shadow-lg scale-105'
+                      : 'bg-white border-slate-200 text-slate-500 hover:border-amber-300'
+                  }`}
+                >
+                  <span className="text-2xl">🏫</span>
+                  <span>Faculty</span>
+                  <span className="text-[9px] opacity-70 font-normal">Professor / HOD / Staff</span>
+                </button>
+              </div>
+              <p className="text-[10px] text-slate-400 mt-1.5 text-center">
+                Selected: <span className="font-bold text-slate-600">{signupRole === 'student' ? '🎓 Student' : '🏫 Faculty'}</span>
+              </p>
+            </div>
+
+            {/* Full Name */}
             <div>
               <label className="block text-xs font-bold text-slate-600 mb-1.5">Full Name</label>
               <input
@@ -279,35 +354,7 @@ export default function Login() {
               />
             </div>
 
-            {/* Role selector — Student or Faculty */}
-            <div>
-              <label className="block text-xs font-bold text-slate-600 mb-1.5">I am a...</label>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => setSignupRole('student')}
-                  className={`flex items-center gap-2 justify-center py-2.5 rounded-xl border text-xs font-bold transition-all ${
-                    signupRole === 'student'
-                      ? 'bg-emerald-50 border-emerald-400 text-emerald-800'
-                      : 'bg-white border-slate-200 text-slate-500 hover:border-slate-300'
-                  }`}
-                >
-                  🎓 Student
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSignupRole('faculty')}
-                  className={`flex items-center gap-2 justify-center py-2.5 rounded-xl border text-xs font-bold transition-all ${
-                    signupRole === 'faculty'
-                      ? 'bg-amber-50 border-amber-400 text-amber-800'
-                      : 'bg-white border-slate-200 text-slate-500 hover:border-slate-300'
-                  }`}
-                >
-                  🏫 Faculty
-                </button>
-              </div>
-            </div>
-
+            {/* Email */}
             <div>
               <label className="block text-xs font-bold text-slate-600 mb-1.5">Email Address</label>
               <div className="relative">
@@ -323,6 +370,7 @@ export default function Login() {
               </div>
             </div>
 
+            {/* Password */}
             <div>
               <label className="block text-xs font-bold text-slate-600 mb-1.5">
                 Password
@@ -345,26 +393,16 @@ export default function Login() {
                   {showPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
-              {/* Strength bar */}
               {password && (
                 <div className="mt-2">
                   <div className="flex gap-1 mb-1">
-                    {[1,2,3,4,5].map(i => (
+                    {[1, 2, 3, 4, 5].map(i => (
                       <div key={i} className={`h-1 flex-1 rounded-full transition-all ${i <= passwordStrength.score ? passwordStrength.color : 'bg-slate-200'}`} />
                     ))}
                   </div>
                   <p className={`text-[10px] font-bold ${passwordStrength.score <= 2 ? 'text-red-500' : passwordStrength.score === 3 ? 'text-yellow-500' : passwordStrength.score === 4 ? 'text-blue-500' : 'text-green-500'}`}>
                     {passwordStrength.label} Password
                   </p>
-                  {passwordErrors.length > 0 && (
-                    <ul className="mt-1 space-y-0.5">
-                      {passwordErrors.map((e, i) => (
-                        <li key={i} className="flex items-center gap-1 text-[10px] text-red-500">
-                          <AlertCircle className="w-3 h-3" /> {e}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
                   {passwordErrors.length === 0 && (
                     <p className="flex items-center gap-1 text-[10px] text-green-500 mt-1">
                       <CheckCircle className="w-3 h-3" /> Password meets all requirements ✓
@@ -374,6 +412,7 @@ export default function Login() {
               )}
             </div>
 
+            {/* Confirm Password */}
             <div>
               <label className="block text-xs font-bold text-slate-600 mb-1.5">Confirm Password</label>
               <div className="relative">
@@ -391,30 +430,30 @@ export default function Login() {
                   {showConfirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
-              {confirmPassword && password !== confirmPassword && (
-                <p className="mt-1 text-[10px] text-red-500 flex items-center gap-1">
-                  <AlertCircle className="w-3 h-3" /> Passwords do not match
-                </p>
-              )}
-              {confirmPassword && password === confirmPassword && password.length > 0 && (
+              {confirmPassword && password === confirmPassword && (
                 <p className="mt-1 text-[10px] text-green-500 flex items-center gap-1">
                   <CheckCircle className="w-3 h-3" /> Passwords match ✓
                 </p>
               )}
             </div>
 
+            {/* Submit */}
             <button type="submit" disabled={loading}
-              className="w-full py-4 rounded-xl bg-[#0f2d52] hover:bg-blue-900 text-white text-sm font-black shadow-lg shadow-blue-900/25 transition-all flex items-center justify-center gap-2 disabled:opacity-60">
+              className={`w-full py-4 rounded-xl text-white text-sm font-black shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-60 ${
+                signupRole === 'faculty'
+                  ? 'bg-amber-500 hover:bg-amber-600 shadow-amber-500/25'
+                  : 'bg-[#0f2d52] hover:bg-blue-900 shadow-blue-900/25'
+              }`}>
               {loading ? (
                 <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /><span>Creating Account...</span></>
               ) : (
-                <><span>Create Account</span><ArrowRight className="w-4 h-4" /></>
+                <><span>Create {signupRole === 'faculty' ? '🏫 Faculty' : '🎓 Student'} Account</span><ArrowRight className="w-4 h-4" /></>
               )}
             </button>
 
             <p className="text-center text-xs text-slate-500">
               Already have an account?{' '}
-              <button type="button" onClick={() => { setMode('login'); setError(''); }}
+              <button type="button" onClick={() => switchMode('login')}
                 className="text-[#0f2d52] font-bold hover:underline">
                 Sign In
               </button>
@@ -429,9 +468,9 @@ export default function Login() {
           <div className="flex-1 h-px bg-slate-200" />
         </div>
 
-        {/* Role buttons — demo mode */}
+        {/* Quick Access Demo Buttons */}
         <div className="grid grid-cols-3 gap-2 mb-6">
-          {roles.map((role) => (
+          {demoRoles.map((role) => (
             <button
               key={role.id}
               onClick={() => handleDemoRole(role.id)}
