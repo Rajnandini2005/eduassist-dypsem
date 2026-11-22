@@ -238,6 +238,8 @@ export const api = {
 
   // ── Tickets ───────────────────────────────────────────────────
   getTickets: async (filters = {}) => {
+    // Always load local tickets first (these are the user's real tickets)
+    const localTickets = JSON.parse(localStorage.getItem('local_tickets') || '[]');
     try {
       const params = new URLSearchParams();
       if (filters.status) params.append("status", filters.status);
@@ -245,12 +247,22 @@ export const api = {
       if (filters.category) params.append("category", filters.category);
       if (filters.department_id) params.append("department_id", filters.department_id);
       const res = await apiFetch(`${API_BASE_URL}/tickets?${params.toString()}`, { headers: getAuthHeaders() });
-      if (!res.ok) return DEMO_TICKETS;
+      if (!res.ok) {
+        // Backend error — return only local tickets (never Aarav's demo tickets)
+        return localTickets;
+      }
       const data = await res.json();
-      // If backend returns empty, use demo tickets so dashboard isn't blank
-      return Array.isArray(data) && data.length > 0 ? data : DEMO_TICKETS;
+      if (Array.isArray(data) && data.length > 0) {
+        // Merge: real tickets + any local-only tickets not synced
+        const realIds = new Set(data.map(t => t.id));
+        const unsynced = localTickets.filter(t => !realIds.has(t.id));
+        return [...unsynced, ...data];
+      }
+      // Backend returned empty — return only local tickets (not demo data)
+      return localTickets;
     } catch {
-      return DEMO_TICKETS;
+      // Backend unavailable — return only local tickets
+      return localTickets;
     }
   },
 

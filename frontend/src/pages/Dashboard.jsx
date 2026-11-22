@@ -78,7 +78,12 @@ function TicketRow({ ticket, onClick }) {
 // STUDENT DASHBOARD
 // ═══════════════════════════════════════════════════════════════
 function StudentDashboard({ user, tickets, notices, loading, navigate, setIsTicketModalOpen }) {
-  const myTickets = tickets.filter(t => t.created_by === user?.id || t.student_email === user?.email || t.isDemo || t.isLocal);
+  // Only show THIS user's tickets — never show demo tickets from other students
+  const myTickets = tickets.filter(t => 
+    t.created_by === user?.id || 
+    t.student_email === user?.email ||
+    (t.isLocal && (t.created_by === user?.id || t.student_email === user?.email))
+  );
   const openCount = myTickets.filter(t => t.status === 'open' || t.status === 'in_progress').length;
   const avatarUrl = getAvatarUrl(user);
   const [avatarErr, setAvatarErr] = useState(false);

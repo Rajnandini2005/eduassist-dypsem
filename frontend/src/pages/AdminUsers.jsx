@@ -9,9 +9,28 @@ export default function AdminUsers() {
   const [updatingId, setUpdatingId] = useState(null);
 
   const fetchUsers = () => {
+    // Load locally registered users first (from localStorage)
+    const localUsersRaw = localStorage.getItem('eduassist_users');
+    const localUsers = localUsersRaw ? JSON.parse(localUsersRaw) : [];
+    // Remove password before showing
+    const safeLocalUsers = localUsers.map(({ password, ...u }) => ({
+      ...u,
+      is_active: true,
+      source: 'local'
+    }));
+
+    // Also try backend
     api.getUsers()
-      .then(setUsers)
-      .catch(console.error)
+      .then(backendUsers => {
+        // Merge: backend users + local-only users not in backend
+        const backendEmails = new Set((backendUsers || []).map(u => u.email?.toLowerCase()));
+        const localOnly = safeLocalUsers.filter(u => !backendEmails.has(u.email?.toLowerCase()));
+        setUsers([...(backendUsers || []), ...localOnly]);
+      })
+      .catch(() => {
+        // Backend unavailable — show local users only
+        setUsers(safeLocalUsers);
+      })
       .finally(() => setLoading(false));
   };
 

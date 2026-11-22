@@ -464,9 +464,12 @@ export default function Login() {
         {/* OR divider */}
         <div className="flex items-center gap-3 mb-4">
           <div className="flex-1 h-px bg-slate-200" />
-          <span className="text-xs text-slate-400 font-semibold">QUICK ACCESS</span>
+          <span className="text-xs text-slate-400 font-semibold">QUICK ACCESS (DEMO ONLY)</span>
           <div className="flex-1 h-px bg-slate-200" />
         </div>
+        <p className="text-[10px] text-slate-400 text-center mb-3">
+          ⚠️ Demo mode — uses sample accounts. Create your own account above for real data.
+        </p>
 
         {/* Quick Access Demo Buttons */}
         <div className="grid grid-cols-3 gap-2 mb-6">

@@ -79,12 +79,17 @@ export default function Tickets() {
   // Apply Role Filtering
   const roleFilteredTickets = tickets.filter(t => {
     if (role === 'student') {
-      // Student sees their own tickets OR demo tickets (so it's never blank)
-      return t.created_by === user?.id || t.student_email === user?.email || t.isDemo || t.isLocal;
+      // Student sees ONLY their own tickets (by email, id, or local flag with matching user)
+      // NO demo tickets from other students
+      const isMyTicket = 
+        t.created_by === user?.id ||
+        t.student_email === user?.email ||
+        (t.isLocal && t.created_by === user?.id) ||
+        (t.isLocal && t.student_email === user?.email);
+      return isMyTicket;
     }
     if (role === 'faculty') {
       if (facultyTab === 'assigned_to_me') {
-        // Show tickets assigned to this faculty OR any ticket if no assignment set
         return t.assigned_to === user?.id || !t.assigned_to;
       }
       if (facultyTab === 'my_department') {
