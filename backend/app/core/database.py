@@ -135,12 +135,12 @@ PROFILES: List[Dict[str, Any]] = [
         "is_active": True,
         "created_at": datetime.now(timezone.utc)
     },
-    # ✅ REAL USER — Rajnandini (Admin access) — Password: EduAssist@2025#Dyp
+    # ✅ REAL USER — Madhura (Admin access) — Password: EduAssist@2025#Dyp
     {
         "id": "f1111111-aaaa-bbbb-cccc-dddddddddddd",
-        "email": "rajnandini@dypsem.edu.in",
+        "email": "madhura@dypsem.edu.in",
         "password": "EduAssist@2025#Dyp",
-        "full_name": "Rajnandini",
+        "full_name": "Madhura",
         "role": "admin",
         "department_id": "11111111-1111-1111-1111-111111111111",
         "roll_no": "DYPSEM-ADMIN-01",
