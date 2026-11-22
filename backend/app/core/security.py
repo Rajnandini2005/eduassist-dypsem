@@ -9,12 +9,26 @@ from app.core.config import settings
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{settings.API_V1_PREFIX}/auth/login", auto_error=False)
 
+def is_bcrypt_hash(password: str) -> bool:
+    """Check if a string looks like a bcrypt hash."""
+    return password.startswith("$2b$") or password.startswith("$2a$") or password.startswith("$2y$")
+
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    try:
-        return pwd_context.verify(plain_password, hashed_password)
-    except Exception:
-        # Fallback for plain demo passwords if any
-        return plain_password == hashed_password
+    """
+    Verify password — supports both plain text (demo users) and bcrypt hashes (registered users).
+    """
+    if not plain_password or not hashed_password:
+        return False
+    
+    # If stored password is a bcrypt hash — use bcrypt verification
+    if is_bcrypt_hash(hashed_password):
+        try:
+            return pwd_context.verify(plain_password, hashed_password)
+        except Exception:
+            return False
+    
+    # For plain text demo passwords (pre-seeded PROFILES) — direct comparison
+    return plain_password == hashed_password
 
 def get_password_hash(password: str) -> str:
     return pwd_context.hash(password)
