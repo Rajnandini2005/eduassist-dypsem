@@ -31,3 +31,10 @@ Thumbs.db
 # Logs
 *.log
 logs/
+
+# Android
+frontend/android/.gradle/
+frontend/android/build/
+frontend/android/app/build/
+frontend/android/local.properties
+frontend/android/app/src/main/assets/public/

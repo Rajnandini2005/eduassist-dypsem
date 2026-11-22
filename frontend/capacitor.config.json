@@ -1,0 +1,10 @@
+{
+  "appId": "com.dypsem.eduassist",
+  "appName": "EduAssist DYPSEM",
+  "webDir": "dist",
+  "bundledWebRuntime": false,
+  "server": {
+    "androidScheme": "https",
+    "cleartext": true
+  }
+}

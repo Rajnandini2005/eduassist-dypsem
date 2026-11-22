@@ -11,6 +11,9 @@
     "lint": "oxlint"
   },
   "dependencies": {
+    "@capacitor/android": "^8.6.2",
+    "@capacitor/cli": "^8.6.2",
+    "@capacitor/core": "^8.6.2",
     "@supabase/supabase-js": "^2.119.0",
     "autoprefixer": "^10.6.2",
     "lucide-react": "^1.73.0",
