@@ -78,17 +78,55 @@ function TicketRow({ ticket, onClick }) {
 // STUDENT DASHBOARD
 // ═══════════════════════════════════════════════════════════════
 function StudentDashboard({ user, tickets, notices, loading, navigate, setIsTicketModalOpen }) {
-  // Only show THIS user's tickets — match by email (most reliable) or id
-  const myTickets = tickets.filter(t => {
+  // Read local tickets DIRECTLY from localStorage — instant, 100% reliable
+  const [localTicketCount, setLocalTicketCount] = React.useState(() => {
+    try {
+      const all = JSON.parse(localStorage.getItem('local_tickets') || '[]');
+      const myEmail = user?.email?.toLowerCase();
+      const myId = user?.id;
+      return all.filter(t =>
+        (t.student_email && t.student_email.toLowerCase() === myEmail) ||
+        t.created_by === myId
+      );
+    } catch { return []; }
+  });
+
+  // Also count from props (backend tickets)
+  const backendMyTickets = tickets.filter(t => {
     const myEmail = user?.email?.toLowerCase();
     const myId = user?.id;
     return (
       (t.student_email && t.student_email.toLowerCase() === myEmail) ||
-      t.created_by === myId ||
-      (t.isLocal && t.student_email?.toLowerCase() === myEmail)
+      t.created_by === myId
     );
   });
+
+  // Merge local + backend, deduplicate by id
+  const allMyTicketIds = new Set([...localTicketCount.map(t => t.id), ...backendMyTickets.map(t => t.id)]);
+  const myTickets = [
+    ...localTicketCount.filter(t => !backendMyTickets.find(b => b.id === t.id)),
+    ...backendMyTickets
+  ];
+
   const openCount = myTickets.filter(t => t.status === 'open' || t.status === 'in_progress').length;
+
+  // Listen for new tickets created in this session
+  React.useEffect(() => {
+    const refreshLocal = () => {
+      try {
+        const all = JSON.parse(localStorage.getItem('local_tickets') || '[]');
+        const myEmail = user?.email?.toLowerCase();
+        const myId = user?.id;
+        setLocalTicketCount(all.filter(t =>
+          (t.student_email && t.student_email.toLowerCase() === myEmail) ||
+          t.created_by === myId
+        ));
+      } catch {}
+    };
+    // Poll every 2 seconds to pick up newly created tickets
+    const interval = setInterval(refreshLocal, 2000);
+    return () => clearInterval(interval);
+  }, [user]);
   const avatarUrl = getAvatarUrl(user);
   const [avatarErr, setAvatarErr] = useState(false);
 
