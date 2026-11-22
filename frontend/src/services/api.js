@@ -270,20 +270,27 @@ export const api = {
     // Check local tickets first
     const localTickets = JSON.parse(localStorage.getItem('local_tickets') || '[]');
     const local = localTickets.find(t => t.id === ticketId);
-    if (local) return { ...local, comments: [] };
+    if (local) {
+      return {
+        ...local,
+        comments: Array.isArray(local.comments) ? local.comments : []
+      };
+    }
 
     // Check demo tickets
     const demo = DEMO_TICKETS.find(t => t.id === ticketId);
-    if (demo) return { ...demo, comments: [] };
+    if (demo) return { ...demo, comments: demo.comments || [] };
 
     try {
       const res = await apiFetch(`${API_BASE_URL}/tickets/${ticketId}`, { headers: getAuthHeaders() });
       if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.detail || `Ticket ${ticketId} not found`);
+        throw new Error(`Ticket ${ticketId} not found`);
       }
       return res.json();
     } catch (err) {
+      // Check again if local ticket was created with a matching number
+      const fallback = localTickets.find(t => t.ticket_number === ticketId);
+      if (fallback) return { ...fallback, comments: fallback.comments || [] };
       throw err;
     }
   },
@@ -308,62 +315,126 @@ export const api = {
   },
 
   updateTicketStatus: async (ticketId, status, resolutionNotes = null) => {
+    // Update local_tickets immediately
+    try {
+      const localTickets = JSON.parse(localStorage.getItem('local_tickets') || '[]');
+      const idx = localTickets.findIndex(t => t.id === ticketId);
+      if (idx >= 0) {
+        localTickets[idx].status = status;
+        if (resolutionNotes) {
+          localTickets[idx].resolution_notes = resolutionNotes;
+        }
+        if (status === 'resolved' || status === 'closed') {
+          localTickets[idx].resolved_at = new Date().toISOString();
+        }
+        localStorage.setItem('local_tickets', JSON.stringify(localTickets));
+      }
+    } catch {}
+
+    window.dispatchEvent(new CustomEvent('eduassist_ticket_updated', {
+      detail: { id: ticketId, status, resolution_notes: resolutionNotes }
+    }));
+
     try {
       const res = await apiFetch(`${API_BASE_URL}/tickets/${ticketId}`, {
         method: "PATCH",
         headers: getAuthHeaders(),
         body: JSON.stringify({ status, resolution_notes: resolutionNotes })
       });
-      if (!res.ok) throw new Error("Update failed");
-      return res.json();
-    } catch {
-      // Local fallback
-      return { id: ticketId, status, resolution_notes: resolutionNotes };
-    }
+      if (res.ok) return res.json();
+    } catch {}
+
+    return { id: ticketId, status, resolution_notes: resolutionNotes };
   },
 
-  assignTicket: async (ticketId, staffId) => {
+  assignTicket: async (ticketId, staffId, staffName = null) => {
+    try {
+      const localTickets = JSON.parse(localStorage.getItem('local_tickets') || '[]');
+      const idx = localTickets.findIndex(t => t.id === ticketId);
+      if (idx >= 0) {
+        localTickets[idx].assigned_to = staffId;
+        if (staffName) localTickets[idx].assigned_to_name = staffName;
+        localStorage.setItem('local_tickets', JSON.stringify(localTickets));
+      }
+    } catch {}
+
+    window.dispatchEvent(new CustomEvent('eduassist_ticket_updated', {
+      detail: { id: ticketId, assigned_to: staffId }
+    }));
+
     try {
       const res = await apiFetch(`${API_BASE_URL}/tickets/${ticketId}`, {
         method: "PATCH",
         headers: getAuthHeaders(),
         body: JSON.stringify({ assigned_to: staffId })
       });
-      if (!res.ok) throw new Error("Assign failed");
-      return res.json();
-    } catch {
-      return { id: ticketId, assigned_to: staffId };
-    }
+      if (res.ok) return res.json();
+    } catch {}
+
+    return { id: ticketId, assigned_to: staffId };
   },
 
   // Ticket Comments
   getTicketComments: async (ticketId) => {
     try {
+      const localTickets = JSON.parse(localStorage.getItem('local_tickets') || '[]');
+      const local = localTickets.find(t => t.id === ticketId);
+      if (local && Array.isArray(local.comments) && local.comments.length > 0) {
+        return local.comments;
+      }
       const res = await apiFetch(`${API_BASE_URL}/tickets/${ticketId}/comments`, { headers: getAuthHeaders() });
-      if (!res.ok) return [];
+      if (!res.ok) return local?.comments || [];
       return res.json();
-    } catch { return []; }
+    } catch {
+      const localTickets = JSON.parse(localStorage.getItem('local_tickets') || '[]');
+      const local = localTickets.find(t => t.id === ticketId);
+      return local?.comments || [];
+    }
   },
 
-  addComment: async (ticketId, text, isInternal = false) => {
+  addComment: async (ticketId, messageText, currentUser = null) => {
+    const newComment = {
+      id: 'comment-' + Date.now(),
+      ticket_id: ticketId,
+      user_id: currentUser?.id || 'staff',
+      user_name: currentUser?.full_name || 'Faculty Member',
+      user_role: currentUser?.role || 'faculty',
+      message: messageText,
+      text: messageText,
+      is_internal: false, // ALWAYS visible to the student!
+      created_at: new Date().toISOString()
+    };
+
+    // Save into local_tickets immediately
+    try {
+      const localTickets = JSON.parse(localStorage.getItem('local_tickets') || '[]');
+      const idx = localTickets.findIndex(t => t.id === ticketId);
+      if (idx >= 0) {
+        if (!Array.isArray(localTickets[idx].comments)) {
+          localTickets[idx].comments = [];
+        }
+        localTickets[idx].comments.push(newComment);
+        localStorage.setItem('local_tickets', JSON.stringify(localTickets));
+      }
+    } catch {}
+
+    // Dispatch global event for instant UI sync
+    window.dispatchEvent(new CustomEvent('eduassist_comment_added', { detail: newComment }));
+
+    // Sync to backend if possible
     try {
       const res = await apiFetch(`${API_BASE_URL}/tickets/${ticketId}/comments`, {
         method: "POST",
         headers: getAuthHeaders(),
-        body: JSON.stringify({ text, is_internal: isInternal })
+        body: JSON.stringify({ message: messageText, is_internal: false })
       });
-      if (!res.ok) throw new Error("Comment failed");
-      return res.json();
-    } catch {
-      // Local fallback comment
-      return {
-        id: 'local-comment-' + Date.now(),
-        text,
-        is_internal: isInternal,
-        author_name: 'You',
-        created_at: new Date().toISOString()
-      };
-    }
+      if (res.ok) {
+        const data = await res.json();
+        return { ...newComment, ...data, message: data.message || messageText };
+      }
+    } catch {}
+
+    return newComment;
   },
 
   // Ticket PDF attachment upload

@@ -26,7 +26,6 @@ export default function TicketDetails() {
   const [ticket, setTicket] = useState(null);
   const [loading, setLoading] = useState(true);
   const [commentText, setCommentText] = useState('');
-  const [isInternal, setIsInternal] = useState(false);
   const [facultyList, setFacultyList] = useState([]);
   const [updating, setUpdating] = useState(false);
   const [resolutionNotes, setResolutionNotes] = useState('');
@@ -45,18 +44,31 @@ export default function TicketDetails() {
 
   useEffect(() => {
     fetchTicket();
+    const handleSync = () => fetchTicket();
+    window.addEventListener('eduassist_comment_added', handleSync);
+    window.addEventListener('eduassist_ticket_updated', handleSync);
+    window.addEventListener('storage', handleSync);
     if (role !== 'student') {
       api.getUsers().then(users => {
         setFacultyList(users.filter(u => u.role === 'faculty' || u.role === 'admin'));
       }).catch(console.error);
     }
+    return () => {
+      window.removeEventListener('eduassist_comment_added', handleSync);
+      window.removeEventListener('eduassist_ticket_updated', handleSync);
+      window.removeEventListener('storage', handleSync);
+    };
   }, [id, user]);
 
   const handleStatusChange = async (newStatus, notes = null) => {
     setUpdating(true);
     try {
       const updated = await api.updateTicketStatus(id, newStatus, notes || resolutionNotes || undefined);
-      setTicket(updated);
+      setTicket(prev => ({
+        ...prev,
+        status: newStatus,
+        resolution_notes: notes || resolutionNotes || prev?.resolution_notes
+      }));
       setResolutionNotes('');
       setShowResolutionInput(false);
     } catch (err) {
@@ -69,8 +81,13 @@ export default function TicketDetails() {
   const handleAssign = async (staffId) => {
     setUpdating(true);
     try {
-      const updated = await api.assignTicket(id, staffId);
-      setTicket(updated);
+      const staffMember = facultyList.find(f => f.id === staffId);
+      await api.assignTicket(id, staffId, staffMember?.full_name);
+      setTicket(prev => ({
+        ...prev,
+        assigned_to: staffId,
+        assigned_to_name: staffMember?.full_name || prev?.assigned_to_name
+      }));
     } catch (err) {
       console.error(err);
     } finally {
@@ -83,13 +100,12 @@ export default function TicketDetails() {
     if (!commentText.trim()) return;
 
     try {
-      const newComment = await api.addComment(id, commentText, role === 'student' ? false : isInternal);
+      const newComment = await api.addComment(id, commentText.trim(), user);
       setTicket(prev => ({
         ...prev,
-        comments: [...prev.comments, newComment]
+        comments: [...(prev?.comments || []), newComment]
       }));
       setCommentText('');
-      setIsInternal(false);
     } catch (err) {
       console.error("Comment post error:", err);
     }
@@ -107,10 +123,8 @@ export default function TicketDetails() {
     );
   }
 
-  // Filter out internal comments if role is student
-  const visibleComments = role === 'student' 
-    ? (ticket.comments || []).filter(c => !c.is_internal)
-    : (ticket.comments || []);
+  // All comments are visible to student and faculty
+  const allComments = Array.isArray(ticket.comments) ? ticket.comments : [];
 
   const getStatusBadge = (s) => {
     switch (s) {
@@ -349,49 +363,51 @@ export default function TicketDetails() {
           </div>
         )}
 
-        {/* Discussion Thread */}
+        {/* Official Discussion & Faculty Responses Thread */}
         <div className="space-y-4 pt-4 border-t border-slate-200">
           <div className="flex items-center justify-between">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">
-              Discussion & Activity Log ({visibleComments.length})
+            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">
+              Official Responses & Discussion ({allComments.length})
             </h3>
-            {role !== 'student' && (
-              <span className="text-[11px] text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200 font-bold flex items-center gap-1">
-                <Lock className="w-3 h-3" /> Faculty Mode: Internal notes visible
-              </span>
-            )}
+            <span className="text-[11px] text-emerald-800 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200 font-bold">
+              Visible to Student & Faculty
+            </span>
           </div>
 
           <div className="space-y-3">
-            {visibleComments.length > 0 ? (
-              visibleComments.map((comm) => (
-                <div
-                  key={comm.id}
-                  className={`p-4 rounded-xl border text-xs space-y-1.5 ${
-                    comm.is_internal
-                      ? 'bg-amber-50/80 border-amber-200 text-amber-950 shadow-sm'
-                      : 'bg-white border-slate-200 text-slate-800 shadow-sm'
-                  }`}
-                >
-                  <div className="flex items-center justify-between text-[11px]">
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold text-slate-900">{comm.user_name}</span>
-                      <span className="text-[10px] uppercase font-mono font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-600">
-                        {comm.user_role}
-                      </span>
-                      {comm.is_internal && (
-                        <span className="flex items-center gap-1 text-[10px] text-amber-800 font-bold bg-amber-100 px-2 py-0.5 rounded border border-amber-300">
-                          <Lock className="w-3 h-3" /> Internal Staff Note (Hidden from Student)
+            {allComments.length > 0 ? (
+              allComments.map((comm, idx) => {
+                const isStaff = comm.user_role === 'faculty' || comm.user_role === 'admin';
+                return (
+                  <div
+                    key={comm.id || idx}
+                    className={`p-4 rounded-xl border text-xs space-y-1.5 shadow-sm ${
+                      isStaff
+                        ? 'bg-emerald-50/80 border-emerald-200 text-emerald-950'
+                        : 'bg-blue-50/60 border-blue-200 text-blue-950'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between text-[11px]">
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-slate-900">{comm.user_name || (isStaff ? 'Faculty Member' : 'Student')}</span>
+                        <span className={`text-[10px] uppercase font-mono font-bold px-2 py-0.5 rounded ${
+                          isStaff ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' : 'bg-blue-100 text-blue-800 border border-blue-200'
+                        }`}>
+                          {isStaff ? '👨‍🏫 Faculty / Staff Response' : '🎓 Student Query'}
                         </span>
-                      )}
+                      </div>
+                      <span className="text-slate-400 font-mono">
+                        {comm.created_at ? new Date(comm.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Just now'}
+                      </span>
                     </div>
-                    <span className="text-slate-400 font-mono">{new Date(comm.created_at).toLocaleTimeString()}</span>
+                    <p className="text-xs leading-relaxed whitespace-pre-wrap">{comm.message || comm.text}</p>
                   </div>
-                  <p className="text-xs leading-relaxed">{comm.message}</p>
-                </div>
-              ))
+                );
+              })
             ) : (
-              <p className="text-xs text-slate-400 py-3">No replies recorded on this ticket yet.</p>
+              <div className="p-6 text-center rounded-xl bg-slate-50 border border-slate-100">
+                <p className="text-xs text-slate-400">No responses recorded on this ticket yet. Post a message below.</p>
+              </div>
             )}
           </div>
 
@@ -402,31 +418,19 @@ export default function TicketDetails() {
               value={commentText}
               onChange={(e) => setCommentText(e.target.value)}
               placeholder={role === 'student' 
-                ? "Type your message or clarification for the faculty coordinator..." 
-                : "Type your official reply to the student, or check internal note below..."}
-              className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-300 text-xs text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600"
+                ? "Type your message or follow-up question for the faculty coordinator..." 
+                : "Type your official response to the student..."}
+              className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-300 text-xs text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 shadow-sm"
               required
             />
 
-            <div className="flex items-center justify-between">
-              {role !== 'student' ? (
-                <label className="flex items-center gap-2 text-xs font-semibold text-amber-900 bg-amber-50 px-3 py-1.5 rounded-lg border border-amber-200 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={isInternal}
-                    onChange={(e) => setIsInternal(e.target.checked)}
-                    className="rounded border-amber-300 text-amber-600 focus:ring-amber-500 w-4 h-4"
-                  />
-                  <span>Mark as internal staff note (hidden from student)</span>
-                </label>
-              ) : <div />}
-
+            <div className="flex items-center justify-end">
               <button
                 type="submit"
-                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-900 hover:bg-blue-800 text-white text-xs font-semibold shadow-md shadow-blue-900/20"
+                className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-blue-900 hover:bg-blue-800 text-white text-xs font-bold shadow-md shadow-blue-900/20 transition-all active:scale-95"
               >
                 <Send className="w-3.5 h-3.5" />
-                <span>Post Reply</span>
+                <span>Send Response</span>
               </button>
             </div>
           </form>
