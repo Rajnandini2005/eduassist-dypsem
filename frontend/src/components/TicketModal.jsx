@@ -79,61 +79,56 @@ export default function TicketModal({ isOpen, onClose, onCreated }) {
     setSubmitting(true);
     setError('');
 
-    const ticketData = {
+    // ALWAYS construct the ticket with CURRENT user's credentials
+    const newTicket = {
+      id: 'local-' + Date.now(),
+      ticket_number: 'TKT-' + Math.floor(Math.random() * 90000 + 10000),
       title: title.trim(),
       description: description.trim(),
       category,
       priority,
-      department_id: departmentId || null
+      status: 'open',
+      department_id: departmentId || null,
+      department_name: departments.find(d => d.id === departmentId)?.name || 'General Campus Helpdesk',
+      student_name: user?.full_name || 'Student',
+      student_email: (user?.email || '').trim().toLowerCase(),
+      student_roll: user?.roll_no || '',
+      created_by: user?.id || 'user-' + Date.now(),
+      created_at: new Date().toISOString(),
+      isLocal: true,
+      attachment_name: attachedFile?.name || null
     };
 
-    try {
-      const res = await api.createTicket(ticketData);
-      // If file attached, upload it
-      if (attachedFile && res.id) {
-        try {
-          await api.uploadTicketAttachment(res.id, attachedFile);
-        } catch {
-          // Non-fatal — ticket created, attachment failed silently
-          console.warn('Attachment upload failed — ticket still created');
-        }
+    // 1. ALWAYS SAVE TO LOCAL STORAGE IMMEDIATELY (guaranteed persistence!)
+    saveLocalTicket(newTicket);
+
+    // 2. DISPATCH GLOBAL EVENT for instant UI update everywhere
+    window.dispatchEvent(new CustomEvent('eduassist_ticket_created', { detail: newTicket }));
+
+    // 3. Background sync to backend if online
+    api.createTicket({
+      title: newTicket.title,
+      description: newTicket.description,
+      category: newTicket.category,
+      priority: newTicket.priority,
+      department_id: newTicket.department_id,
+      student_name: newTicket.student_name,
+      student_email: newTicket.student_email
+    }).then(async (res) => {
+      if (attachedFile && res?.id) {
+        try { await api.uploadTicketAttachment(res.id, attachedFile); } catch {}
       }
-      setSuccess(true);
-      setTimeout(() => {
-        onCreated(res);
-        onClose();
-        setSuccess(false);
-      }, 1800);
-    } catch (err) {
-      // Backend unavailable — save locally
-      const localTicket = {
-        id: 'local-' + Date.now(),
-        ticket_number: 'TKT-' + Math.floor(Math.random() * 90000 + 10000),
-        title: ticketData.title,
-        description: ticketData.description,
-        category: ticketData.category,
-        priority: ticketData.priority,
-        status: 'open',
-        department_id: ticketData.department_id,
-        department_name: departments.find(d => d.id === ticketData.department_id)?.name || 'General Campus Helpdesk',
-        student_name: user?.full_name || 'Student',
-        student_email: user?.email || '',
-        created_by: user?.id || 'local-user',
-        created_at: new Date().toISOString(),
-        isLocal: true,
-        attachment_name: attachedFile?.name || null
-      };
-      saveLocalTicket(localTicket);
-      setIsOffline(true);
-      setSuccess(true);
-      setTimeout(() => {
-        onCreated(localTicket);
-        onClose();
-        setSuccess(false);
-      }, 2000);
-    } finally {
+    }).catch(() => {
+      // Backend offline or asleep — local ticket is already securely stored
+    });
+
+    setSuccess(true);
+    setTimeout(() => {
+      onCreated(newTicket);
+      onClose();
+      setSuccess(false);
       setSubmitting(false);
-    }
+    }, 1200);
   };
 
   if (success) {

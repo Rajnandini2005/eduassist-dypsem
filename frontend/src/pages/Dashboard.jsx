@@ -78,55 +78,49 @@ function TicketRow({ ticket, onClick }) {
 // STUDENT DASHBOARD
 // ═══════════════════════════════════════════════════════════════
 function StudentDashboard({ user, tickets, notices, loading, navigate, setIsTicketModalOpen }) {
-  // Read local tickets DIRECTLY from localStorage — instant, 100% reliable
-  const [localTicketCount, setLocalTicketCount] = React.useState(() => {
+  const myEmail = (user?.email || '').toLowerCase().trim();
+  const myName = (user?.full_name || '').toLowerCase().trim();
+  const myId = user?.id;
+
+  const getMyTickets = () => {
     try {
-      const all = JSON.parse(localStorage.getItem('local_tickets') || '[]');
-      const myEmail = user?.email?.toLowerCase();
-      const myId = user?.id;
-      return all.filter(t =>
-        (t.student_email && t.student_email.toLowerCase() === myEmail) ||
-        t.created_by === myId
-      );
-    } catch { return []; }
-  });
+      const local = JSON.parse(localStorage.getItem('local_tickets') || '[]');
+      const propTickets = Array.isArray(tickets) ? tickets : [];
+      const localIds = new Set(local.map(t => t.id));
+      const combined = [...local, ...propTickets.filter(t => !localIds.has(t.id))];
 
-  // Also count from props (backend tickets)
-  const backendMyTickets = tickets.filter(t => {
-    const myEmail = user?.email?.toLowerCase();
-    const myId = user?.id;
-    return (
-      (t.student_email && t.student_email.toLowerCase() === myEmail) ||
-      t.created_by === myId
-    );
-  });
+      return combined.filter(t => {
+        const tEmail = (t.student_email || '').toLowerCase().trim();
+        const tName = (t.student_name || '').toLowerCase().trim();
+        const tCreated = t.created_by;
+        return (
+          (myEmail && tEmail === myEmail) ||
+          (myId && tCreated === myId) ||
+          (myName && tName === myName)
+        );
+      });
+    } catch {
+      return [];
+    }
+  };
 
-  // Merge local + backend, deduplicate by id
-  const allMyTicketIds = new Set([...localTicketCount.map(t => t.id), ...backendMyTickets.map(t => t.id)]);
-  const myTickets = [
-    ...localTicketCount.filter(t => !backendMyTickets.find(b => b.id === t.id)),
-    ...backendMyTickets
-  ];
+  const [myTickets, setMyTickets] = React.useState(getMyTickets);
+
+  // Sync on ticket changes, custom event, or storage changes
+  React.useEffect(() => {
+    const update = () => setMyTickets(getMyTickets());
+    update();
+    window.addEventListener('eduassist_ticket_created', update);
+    window.addEventListener('storage', update);
+    const interval = setInterval(update, 1000);
+    return () => {
+      window.removeEventListener('eduassist_ticket_created', update);
+      window.removeEventListener('storage', update);
+      clearInterval(interval);
+    };
+  }, [user, tickets]);
 
   const openCount = myTickets.filter(t => t.status === 'open' || t.status === 'in_progress').length;
-
-  // Listen for new tickets created in this session
-  React.useEffect(() => {
-    const refreshLocal = () => {
-      try {
-        const all = JSON.parse(localStorage.getItem('local_tickets') || '[]');
-        const myEmail = user?.email?.toLowerCase();
-        const myId = user?.id;
-        setLocalTicketCount(all.filter(t =>
-          (t.student_email && t.student_email.toLowerCase() === myEmail) ||
-          t.created_by === myId
-        ));
-      } catch {}
-    };
-    // Poll every 2 seconds to pick up newly created tickets
-    const interval = setInterval(refreshLocal, 2000);
-    return () => clearInterval(interval);
-  }, [user]);
   const avatarUrl = getAvatarUrl(user);
   const [avatarErr, setAvatarErr] = useState(false);
 

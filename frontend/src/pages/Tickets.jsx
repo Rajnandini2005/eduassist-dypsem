@@ -74,19 +74,30 @@ export default function Tickets() {
 
   useEffect(() => {
     fetchTickets();
+    const handleCreated = () => fetchTickets();
+    window.addEventListener('eduassist_ticket_created', handleCreated);
+    window.addEventListener('storage', handleCreated);
+    return () => {
+      window.removeEventListener('eduassist_ticket_created', handleCreated);
+      window.removeEventListener('storage', handleCreated);
+    };
   }, [statusFilter, priorityFilter, categoryFilter, deptFilter, user]);
 
   // Apply Role Filtering
+  const myEmail = (user?.email || '').toLowerCase().trim();
+  const myName = (user?.full_name || '').toLowerCase().trim();
+  const myId = user?.id;
+
   const roleFilteredTickets = tickets.filter(t => {
     if (role === 'student') {
-      // Student sees ONLY their own tickets (by email, id, or local flag with matching user)
-      // NO demo tickets from other students
-      const isMyTicket = 
-        t.created_by === user?.id ||
-        t.student_email === user?.email ||
-        (t.isLocal && t.created_by === user?.id) ||
-        (t.isLocal && t.student_email === user?.email);
-      return isMyTicket;
+      const tEmail = (t.student_email || '').toLowerCase().trim();
+      const tName = (t.student_name || '').toLowerCase().trim();
+      const tCreated = t.created_by;
+      return (
+        (myEmail && tEmail === myEmail) ||
+        (myId && tCreated === myId) ||
+        (myName && tName === myName)
+      );
     }
     if (role === 'faculty') {
       if (facultyTab === 'assigned_to_me') {
