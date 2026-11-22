@@ -6,6 +6,7 @@ import {
   BookOpen, Award, Hash, Edit3, GraduationCap
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { getAvatarUrl } from '../utils/avatar';
 
 export default function Profile() {
   const { user, logout } = useAuth();
@@ -17,7 +18,7 @@ export default function Profile() {
   const roleConfig = {
     student: {
       label: 'Student',
-      badge: 'B.Tech CSE · 4th Year',
+      badge: user?.year_class ? `${user?.course || 'B.Tech'} · ${user.year_class}` : (user?.course || 'B.Tech CSE · Final Year'),
       badgeColor: 'bg-blue-100 text-blue-800',
       icon: <GraduationCap className="w-5 h-5" />,
       iconBg: 'bg-blue-100 text-blue-700',
@@ -115,10 +116,12 @@ export default function Profile() {
           <div className="flex items-center gap-4">
             {/* Avatar */}
             <div className="relative">
-              <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-[#0f2d52] to-blue-700 flex items-center justify-center shadow-lg flex-shrink-0">
-                <span className="text-white text-3xl font-black select-none">
-                  {displayName.charAt(0).toUpperCase()}
-                </span>
+              <div className="w-20 h-20 rounded-2xl overflow-hidden border-2 border-slate-200 shadow-lg flex-shrink-0 bg-slate-100">
+                <img
+                  src={getAvatarUrl(user)}
+                  alt={displayName}
+                  className="w-full h-full object-cover"
+                />
               </div>
               <div className={`absolute -bottom-1 -right-1 w-7 h-7 rounded-lg ${config.iconBg} flex items-center justify-center border-2 border-white shadow`}>
                 {config.icon}

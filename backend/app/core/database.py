@@ -542,7 +542,10 @@ class Database:
             "department_id": profile_data.get("department_id"),
             "roll_no": profile_data.get("roll_no"),
             "phone": profile_data.get("phone"),
-            "avatar_url": profile_data.get("avatar_url", "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150"),
+            "avatar_url": profile_data.get("avatar_url", "/avatar-boy.jpg"),
+            "gender": profile_data.get("gender"),
+            "course": profile_data.get("course", "B.Tech CSE"),
+            "year_class": profile_data.get("year_class", "Final Year"),
             "is_active": True,
             "created_at": datetime.now(timezone.utc)
         }

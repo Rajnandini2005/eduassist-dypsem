@@ -17,6 +17,8 @@ class ProfileBase(BaseModel):
     phone: Optional[str] = None
     avatar_url: Optional[str] = None
     gender: Optional[str] = None
+    course: Optional[str] = None
+    year_class: Optional[str] = None
 
 class ProfileCreate(ProfileBase):
     password: str

@@ -42,6 +42,9 @@ export default function Login() {
   const [fullName, setFullName] = useState('');
   const [signupRole, setSignupRole] = useState('student'); // student | faculty
   const [avatarChoice, setAvatarChoice] = useState('girl'); // 'boy' | 'girl'
+  const [course, setCourse] = useState('B.Tech CSE');
+  const [yearClass, setYearClass] = useState('F.Y. (1st Year)');
+  const [rollNo, setRollNo] = useState('');
   const [showPass, setShowPass] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [error, setError] = useState('');
@@ -105,7 +108,11 @@ export default function Login() {
         full_name: fullName.trim(),
         role: signupRole,
         gender: avatarChoice === 'girl' ? 'female' : 'male',
-        avatar: avatarChoice === 'girl' ? '/avatar-girl.jpg' : '/avatar-boy.jpg'
+        avatar: avatarChoice === 'girl' ? '/avatar-girl.jpg' : '/avatar-boy.jpg',
+        course: signupRole === 'student' ? course : 'Faculty',
+        year_class: signupRole === 'student' ? yearClass : 'Staff',
+        roll_no: rollNo.trim() || '2026-REG',
+        department: course.includes('BCA') ? 'Bachelor of Computer Applications' : course.includes('MCA') ? 'Master of Computer Applications' : course.includes('AIML') ? 'Artificial Intelligence & Machine Learning' : course.includes('DS') ? 'Data Science' : 'Computer Science & Engineering',
       });
       // Success — go to dashboard
       navigate('/');
@@ -413,6 +420,65 @@ export default function Login() {
                 className="w-full px-4 py-3.5 rounded-xl border border-slate-200 bg-white text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#0f2d52] focus:ring-2 focus:ring-blue-100 shadow-sm"
               />
             </div>
+
+            {/* PROGRAMME & CLASS / YEAR SELECTOR (Only for Students) */}
+            {signupRole === 'student' && (
+              <div className="space-y-3 p-3.5 rounded-2xl bg-blue-50/60 border border-blue-100">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Degree Programme / Course <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={course}
+                    onChange={(e) => setCourse(e.target.value)}
+                    className="w-full px-3.5 py-3 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#0f2d52] shadow-sm"
+                  >
+                    <option value="B.Tech CSE">B.Tech Computer Science & Engg. (CSE)</option>
+                    <option value="B.Tech AIML">B.Tech Artificial Intelligence & ML (AIML)</option>
+                    <option value="B.Tech DS">B.Tech Data Science (DS)</option>
+                    <option value="BCA">BCA — Bachelor of Computer Applications</option>
+                    <option value="MCA">MCA — Master of Computer Applications</option>
+                    <option value="M.Tech CSE">M.Tech Computer Science & Engg.</option>
+                  </select>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2.5">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      Academic Year / Class <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      value={yearClass}
+                      onChange={(e) => setYearClass(e.target.value)}
+                      className="w-full px-3 py-3 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#0f2d52] shadow-sm"
+                    >
+                      <option value="F.Y. (1st Year)">F.Y. (1st Year)</option>
+                      <option value="S.Y. (2nd Year)">S.Y. (2nd Year)</option>
+                      <option value="T.Y. (3rd Year)">T.Y. (3rd Year)</option>
+                      <option value="Final Year (4th Year)">Final Year (4th Year)</option>
+                      <option value="BCA 1st Year">BCA 1st Year</option>
+                      <option value="BCA 2nd Year">BCA 2nd Year</option>
+                      <option value="BCA 3rd Year">BCA 3rd Year</option>
+                      <option value="MCA 1st Year">MCA 1st Year</option>
+                      <option value="MCA 2nd Year">MCA 2nd Year</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      Roll No / PRN
+                    </label>
+                    <input
+                      type="text"
+                      value={rollNo}
+                      onChange={(e) => setRollNo(e.target.value)}
+                      placeholder="e.g. 24BCA102"
+                      className="w-full px-3 py-3 rounded-xl border border-slate-200 bg-white text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#0f2d52] shadow-sm"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Email */}
             <div>

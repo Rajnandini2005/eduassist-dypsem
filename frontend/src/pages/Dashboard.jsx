@@ -147,7 +147,9 @@ function StudentDashboard({ user, tickets, notices, loading, navigate, setIsTick
             <div>
               <p className="text-blue-200 text-xs font-medium">DYPSEM Student Portal</p>
               <h2 className="text-xl font-black text-white mt-0.5">Hello, {user?.full_name?.split(' ')[0]} 🎓</h2>
-              <p className="text-blue-200 text-xs mt-1">B.Tech · D. Y. Patil School of Engg. & Mgmt.</p>
+              <p className="text-blue-200 text-xs mt-1">
+                {(user?.course || 'B.Tech') + (user?.year_class ? ` · ${user.year_class}` : '')} · DYPSEM Kolhapur
+              </p>
             </div>
             {/* Gender-based avatar */}
             <div className="w-14 h-14 rounded-2xl overflow-hidden border-2 border-white/30 shadow-lg flex-shrink-0">

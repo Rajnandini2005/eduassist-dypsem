@@ -123,6 +123,9 @@ export default function AdminUsers() {
                       <div>
                         <p className="font-bold text-slate-900">{u.full_name}</p>
                         <p className="text-[11px] text-slate-500 font-mono">{u.email}</p>
+                        {(u.course || u.year_class) && (
+                          <p className="text-[10px] text-blue-700 font-bold">{u.course || 'B.Tech'}{u.year_class ? ` · ${u.year_class}` : ''}</p>
+                        )}
                       </div>
                     </div>
                   </td>
