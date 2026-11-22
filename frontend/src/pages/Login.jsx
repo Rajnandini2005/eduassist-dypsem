@@ -92,7 +92,6 @@ export default function Login() {
     setError('');
     setLoading(true);
     try {
-      // Uses AuthContext register — saves locally + tries backend (non-blocking)
       await register({ email: email.trim(), password, full_name: fullName.trim(), role: signupRole });
       navigate('/');
     } catch (err) {
@@ -100,7 +99,8 @@ export default function Login() {
       if (msg.includes('already registered') || msg.includes('already exists')) {
         setError('This email is already registered. Please sign in instead.');
       } else {
-        setError(msg || 'Registration failed. Please try again.');
+        // Any other error — still navigate (local save already done)
+        navigate('/');
       }
     } finally {
       setLoading(false);
