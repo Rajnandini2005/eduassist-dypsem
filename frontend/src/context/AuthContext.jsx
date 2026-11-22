@@ -232,25 +232,27 @@ function decodeLocalToken(token) {
 // Demo users when clicking Quick Access buttons
 const DEMO_USERS = {
   student: {
-    id: 'student-aarav-001',
+    id: 'demo-student-001',
     role: 'student',
-    full_name: 'Aarav Mehta',
-    email: 'aarav.mehta@student.college.edu',
-    roll_no: '22CS0104',
+    full_name: 'Student Account',
+    email: 'student.demo@dypsem.edu.in',
+    roll_no: 'DYP-STU-2026',
     department: 'Computer Science & Engineering',
+    course: 'B.Tech CSE',
+    year_class: 'Final Year',
   },
   faculty: {
-    id: 'faculty-verma-001',
+    id: 'demo-faculty-001',
     role: 'faculty',
-    full_name: 'Prof. Priya Verma',
-    email: 'faculty.verma@college.edu',
+    full_name: 'Faculty Staff',
+    email: 'faculty.demo@dypsem.edu.in',
     department: 'Computer Science & Engineering',
   },
   admin: {
-    id: 'admin-madhura-001',
+    id: 'demo-admin-001',
     role: 'admin',
-    full_name: 'Madhura',
-    email: 'madhura@dypsem.edu.in',
+    full_name: 'Administrator',
+    email: 'admin.demo@dypsem.edu.in',
   },
 };
 
@@ -427,52 +429,18 @@ export const AuthProvider = ({ children }) => {
   const switchDemoRole = async (role) => {
     setLoading(true);
     try {
-      // Check local registered users first to pick real account
-      const localUsers = getLocalUsers();
-      if (role === 'student') {
-        const student = localUsers.find(u => u.role === 'student' && u.email !== 'aarav.mehta@student.college.edu') || DEMO_USERS.student;
-        if (student && student.email !== 'aarav.mehta@student.college.edu') {
-          const token = makeLocalToken(student);
-          localStorage.setItem(LOCAL_SESSION_KEY, token);
-          localStorage.removeItem('demo_user');
-          const { password: _pw, ...safeUser } = student;
-          setIsDemoMode(false);
-          setUser(safeUser);
-          api.switchRole(role).then(res => {
-            if (res?.access_token) localStorage.setItem('helpdesk_token', res.access_token);
-          }).catch(() => {});
-          return safeUser;
-        }
-      } else if (role === 'admin') {
-        const adminUser = localUsers.find(u => u.email === 'madhura@dypsem.edu.in') || DEMO_USERS.admin;
-        const token = makeLocalToken(adminUser);
-        localStorage.setItem(LOCAL_SESSION_KEY, token);
-        localStorage.removeItem('demo_user');
-        const { password: _pw, ...safeUser } = adminUser;
-        setIsDemoMode(false);
-        setUser(safeUser);
-        api.switchRole(role).then(res => {
-          if (res?.access_token) localStorage.setItem('helpdesk_token', res.access_token);
-        }).catch(() => {});
-        return safeUser;
-      }
-
-      // Try real backend
-      const res = await api.switchRole(role);
-      localStorage.setItem('helpdesk_token', res.access_token);
-      localStorage.removeItem('demo_user');
-      localStorage.removeItem(LOCAL_SESSION_KEY);
-      setIsDemoMode(false);
-      setUser(res.user);
-      return res.user;
-    } catch {
-      // Backend unavailable — use local demo user
       const demoUser = DEMO_USERS[role] || DEMO_USERS.student;
       localStorage.setItem('demo_user', JSON.stringify(demoUser));
-      localStorage.removeItem('helpdesk_token');
-      localStorage.removeItem(LOCAL_SESSION_KEY);
+      const token = makeLocalToken(demoUser);
+      localStorage.setItem(LOCAL_SESSION_KEY, token);
       setIsDemoMode(true);
       setUser(demoUser);
+
+      // Silently try backend to get access token if available
+      api.switchRole(role).then(res => {
+        if (res?.access_token) localStorage.setItem('helpdesk_token', res.access_token);
+      }).catch(() => {});
+
       return demoUser;
     } finally {
       setLoading(false);

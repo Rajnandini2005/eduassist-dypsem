@@ -105,22 +105,41 @@ def get_me(current_user: ProfileResponse = Depends(get_current_user)):
 def switch_demo_role(req: SwitchRoleRequest):
     """
     Convenient switcher for evaluators, viva examination, and demo presentation.
-    Instantly returns credentials for predefined Student, Faculty, or Admin accounts.
+    Returns clean generic credentials for Student Account, Faculty Staff, or Administrator.
     """
     target_role = req.role.lower()
     user = None
     if target_role == "admin":
-        user = Database.get_profile_by_email("madhura@dypsem.edu.in") or Database.get_profile_by_email("admin@college.edu")
+        user = Database.get_profile_by_email("admin.demo@dypsem.edu.in")
+        if not user:
+            user = Database.create_profile({
+                "id": "demo-admin-001",
+                "email": "admin.demo@dypsem.edu.in",
+                "full_name": "Administrator",
+                "role": "admin"
+            })
     elif target_role == "faculty":
-        user = Database.get_profile_by_email("faculty.verma@college.edu")
+        user = Database.get_profile_by_email("faculty.demo@dypsem.edu.in")
+        if not user:
+            user = Database.create_profile({
+                "id": "demo-faculty-001",
+                "email": "faculty.demo@dypsem.edu.in",
+                "full_name": "Faculty Staff",
+                "role": "faculty",
+                "department_id": "11111111-1111-1111-1111-111111111111"
+            })
     elif target_role == "student":
-        # Look for registered student accounts first
-        all_students = [p for p in Database.get_profiles() if p.get("role") == "student"]
-        non_demo_students = [s for s in all_students if s.get("email") != "aarav.mehta@student.college.edu"]
-        if non_demo_students:
-            user = non_demo_students[-1]
-        else:
-            user = Database.get_profile_by_email("aarav.mehta@student.college.edu")
+        user = Database.get_profile_by_email("student.demo@dypsem.edu.in")
+        if not user:
+            user = Database.create_profile({
+                "id": "demo-student-001",
+                "email": "student.demo@dypsem.edu.in",
+                "full_name": "Student Account",
+                "role": "student",
+                "department_id": "11111111-1111-1111-1111-111111111111",
+                "course": "B.Tech CSE",
+                "year_class": "Final Year"
+            })
 
     if not user:
         user = Database.get_profiles()[0]

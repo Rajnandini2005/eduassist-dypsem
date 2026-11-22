@@ -158,37 +158,27 @@ export default function Login() {
     setSignupRole('student');
   };
 
-  // Inspect local users for dynamic personalized quick access
-  const registeredUsers = (() => {
-    try {
-      return JSON.parse(localStorage.getItem('eduassist_users') || '[]');
-    } catch {
-      return [];
-    }
-  })();
-  const registeredStudent = registeredUsers.find(u => u.role === 'student' && u.email !== 'aarav.mehta@student.college.edu');
-
   const demoRoles = [
     {
       id: 'student',
-      label: registeredStudent ? registeredStudent.full_name : 'Student',
-      sublabel: registeredStudent ? 'Student Account' : 'Aarav Mehta',
+      label: 'Student Account',
+      sublabel: 'Student Portal',
       icon: <GraduationCap className="w-5 h-5" />,
       iconBg: 'bg-blue-100 text-blue-700',
       btnClass: 'bg-[#0f2d52] hover:bg-blue-900 text-white',
     },
     {
       id: 'faculty',
-      label: 'Prof. Priya',
-      sublabel: 'Faculty / Staff',
+      label: 'Faculty Staff',
+      sublabel: 'Faculty Portal',
       icon: <UserCheck className="w-5 h-5" />,
       iconBg: 'bg-amber-100 text-amber-700',
       btnClass: 'bg-amber-500 hover:bg-amber-600 text-white',
     },
     {
       id: 'admin',
-      label: 'Madhura',
-      sublabel: 'Administrator',
+      label: 'Administrator',
+      sublabel: 'Admin Portal',
       icon: <ShieldCheck className="w-5 h-5" />,
       iconBg: 'bg-rose-100 text-rose-700',
       btnClass: 'bg-rose-600 hover:bg-rose-700 text-white',
