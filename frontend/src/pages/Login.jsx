@@ -33,7 +33,7 @@ function validatePassword(password) {
 }
 
 export default function Login() {
-  const { login, switchDemoRole } = useAuth();
+  const { login, register, switchDemoRole } = useAuth();
   const navigate = useNavigate();
 
   const [mode, setMode] = useState('home'); // 'home' | 'login' | 'signup'
@@ -41,6 +41,7 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [fullName, setFullName] = useState('');
+  const [signupRole, setSignupRole] = useState('student'); // student | faculty
   const [showPass, setShowPass] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [error, setError] = useState('');
@@ -63,8 +64,8 @@ export default function Login() {
       navigate('/');
     } catch (err) {
       const msg = err.message || '';
-      if (msg === 'BACKEND_UNAVAILABLE') {
-        setError('Server unavailable. Use Quick Access below to enter Demo Mode.');
+      if (msg === 'BACKEND_UNAVAILABLE' || msg === 'BACKEND_SLOW') {
+        setError('Server is starting up (30 sec). Your account is saved — please try again shortly, or use Quick Access below.');
       } else {
         setError('Invalid email or password. Please try again.');
       }
@@ -89,18 +90,13 @@ export default function Login() {
     setError('');
     setLoading(true);
     try {
-      const { api } = await import('../services/api');
-      const res = await api.register({ email: email.trim(), password, full_name: fullName.trim(), role: 'student' });
-      if (res.access_token) {
-        localStorage.setItem('helpdesk_token', res.access_token);
-        navigate('/');
-      }
+      // Uses AuthContext register — saves locally + tries backend (non-blocking)
+      await register({ email: email.trim(), password, full_name: fullName.trim(), role: signupRole });
+      navigate('/');
     } catch (err) {
       const msg = err.message || '';
-      if (msg.includes('already exists')) {
-        setError('This email is already registered. Please login instead.');
-      } else if (msg === 'BACKEND_UNAVAILABLE' || msg.includes('fetch') || msg.includes('network')) {
-        setError('Server unavailable. Please try again later or use Quick Access below.');
+      if (msg.includes('already registered') || msg.includes('already exists')) {
+        setError('This email is already registered. Please sign in instead.');
       } else {
         setError(msg || 'Registration failed. Please try again.');
       }
@@ -279,6 +275,35 @@ export default function Login() {
                 autoComplete="name"
                 className="w-full px-4 py-3.5 rounded-xl border border-slate-200 bg-white text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#0f2d52] focus:ring-2 focus:ring-blue-100 shadow-sm"
               />
+            </div>
+
+            {/* Role selector — Student or Faculty */}
+            <div>
+              <label className="block text-xs font-bold text-slate-600 mb-1.5">I am a...</label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setSignupRole('student')}
+                  className={`flex items-center gap-2 justify-center py-2.5 rounded-xl border text-xs font-bold transition-all ${
+                    signupRole === 'student'
+                      ? 'bg-emerald-50 border-emerald-400 text-emerald-800'
+                      : 'bg-white border-slate-200 text-slate-500 hover:border-slate-300'
+                  }`}
+                >
+                  🎓 Student
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSignupRole('faculty')}
+                  className={`flex items-center gap-2 justify-center py-2.5 rounded-xl border text-xs font-bold transition-all ${
+                    signupRole === 'faculty'
+                      ? 'bg-amber-50 border-amber-400 text-amber-800'
+                      : 'bg-white border-slate-200 text-slate-500 hover:border-slate-300'
+                  }`}
+                >
+                  🏫 Faculty
+                </button>
+              </div>
             </div>
 
             <div>
