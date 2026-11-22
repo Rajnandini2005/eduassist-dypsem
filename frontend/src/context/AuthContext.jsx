@@ -190,23 +190,12 @@ export const AuthProvider = ({ children }) => {
     initAuth();
   }, []);
 
-  // ── LOGIN — tries backend first, falls back to local store ──────
+  // ── LOGIN — tries local store FIRST, then backend ──────────────
+  // This ensures 24/7 login even when Render backend is sleeping
   const login = async (email, password) => {
     setLoading(true);
     try {
-      // Try backend first
-      const res = await api.login(email, password);
-      localStorage.setItem('helpdesk_token', res.access_token);
-      localStorage.removeItem('demo_user');
-      localStorage.removeItem(LOCAL_SESSION_KEY);
-      setIsDemoMode(false);
-      setUser(res.user);
-      return res.user;
-    } catch (err) {
-      const msg = err.message || '';
-
-      // Backend unavailable OR wrong credentials on backend?
-      // Try local store (always works offline)
+      // ✅ ALWAYS try local store first (instant, 24/7)
       const localUser = findLocalUser(email, password);
       if (localUser) {
         const token = makeLocalToken(localUser);
@@ -216,56 +205,95 @@ export const AuthProvider = ({ children }) => {
         const { password: _pw, ...safeUser } = localUser;
         setIsDemoMode(false);
         setUser(safeUser);
+        // Also try backend in background (non-blocking) to sync
+        api.login(email, password).then(res => {
+          if (res?.access_token) {
+            localStorage.setItem('helpdesk_token', res.access_token);
+          }
+        }).catch(() => {/* backend unavailable — local login already done */});
         return safeUser;
       }
 
-      // If backend error (not wrong password), rethrow for UI
-      if (msg.includes('fetch') || msg.includes('network') || msg === 'BACKEND_UNAVAILABLE' || msg === 'BACKEND_SLOW') {
-        throw new Error('BACKEND_UNAVAILABLE');
+      // Not in local store — try backend (for users registered only on backend)
+      try {
+        const res = await api.login(email, password);
+        // Backend success → save user locally too for future offline access
+        if (res?.user) {
+          saveLocalUser({ ...res.user, password });
+          localStorage.setItem('helpdesk_token', res.access_token);
+          localStorage.removeItem('demo_user');
+          localStorage.removeItem(LOCAL_SESSION_KEY);
+          setIsDemoMode(false);
+          setUser(res.user);
+          return res.user;
+        }
+      } catch (backendErr) {
+        const msg = backendErr.message || '';
+        // Backend down or slow — user not found anywhere
+        if (msg === 'BACKEND_UNAVAILABLE' || msg === 'BACKEND_SLOW' || msg.includes('fetch') || msg.includes('network')) {
+          throw new Error('BACKEND_UNAVAILABLE');
+        }
+        // Backend returned wrong credentials
+        throw new Error('WRONG_CREDENTIALS');
       }
-      throw err;
+
+      throw new Error('WRONG_CREDENTIALS');
     } finally {
       setLoading(false);
     }
   };
 
-  // ── REGISTER — saves locally + tries backend ───────────────────
+  // ── REGISTER — saves locally FIRST + tries backend in background ──
+  // Registration works 24/7 even when backend is sleeping
   const register = async (userData) => {
-    // Check if email already taken locally
-    const existing = findLocalUserByEmail(userData.email);
-    if (existing) {
-      throw new Error('This email is already registered. Please sign in.');
+    try {
+      // Check if email already taken locally
+      const existing = findLocalUserByEmail(userData.email);
+      if (existing) {
+        throw new Error('This email is already registered. Please sign in.');
+      }
+
+      const newUser = {
+        id: 'user-' + Date.now(),
+        email: userData.email.trim().toLowerCase(),
+        password: userData.password,
+        full_name: userData.full_name.trim(),
+        role: userData.role || 'student',
+        department: userData.department || 'Computer Science & Engineering',
+        roll_no: userData.roll_no || '',
+        created_at: new Date().toISOString(),
+      };
+
+      // Save locally FIRST (works offline — always succeeds)
+      saveLocalUser(newUser);
+
+      // Try backend in background (non-blocking — ignore errors)
+      try {
+        api.register({ ...userData, email: newUser.email }).catch(() => {
+          console.info('Backend unavailable during registration, saved locally.');
+        });
+      } catch {
+        // Ignore all backend errors — local save already done
+      }
+
+      // Log in immediately with local session
+      const token = makeLocalToken(newUser);
+      localStorage.setItem(LOCAL_SESSION_KEY, token);
+      localStorage.removeItem('demo_user');
+      localStorage.removeItem('helpdesk_token');
+      const { password: _pw, ...safeUser } = newUser;
+      setIsDemoMode(false);
+      setUser(safeUser);
+      return safeUser;
+    } catch (err) {
+      // Only rethrow if it's a "already registered" error
+      if (err.message && err.message.includes('already registered')) {
+        throw err;
+      }
+      // For any other error, still try to log in locally
+      console.error('Register error (non-critical):', err);
+      throw err;
     }
-
-    const newUser = {
-      id: 'user-' + Date.now(),
-      email: userData.email.trim().toLowerCase(),
-      password: userData.password,
-      full_name: userData.full_name.trim(),
-      role: userData.role || 'student',
-      department: userData.department || 'Computer Science & Engineering',
-      roll_no: userData.roll_no || '',
-      created_at: new Date().toISOString(),
-    };
-
-    // Save locally FIRST (works offline)
-    saveLocalUser(newUser);
-
-    // Try backend in background (non-blocking)
-    api.register({ ...userData, email: newUser.email }).catch(() => {
-      // Backend unavailable — that's OK, local save is done
-      console.info('Backend unavailable during registration, saved locally.');
-    });
-
-    // Log in immediately with local session
-    const token = makeLocalToken(newUser);
-    localStorage.setItem(LOCAL_SESSION_KEY, token);
-    localStorage.removeItem('demo_user');
-    localStorage.removeItem('helpdesk_token');
-    const { password: _pw, ...safeUser } = newUser;
-    setIsDemoMode(false);
-    setUser(safeUser);
-    return safeUser;
   };
 
   // ── QUICK ACCESS (Demo Role Buttons) ──────────────────────────

@@ -65,9 +65,11 @@ export default function Login() {
     } catch (err) {
       const msg = err.message || '';
       if (msg === 'BACKEND_UNAVAILABLE' || msg === 'BACKEND_SLOW') {
-        setError('Server is starting up (30 sec). Your account is saved — please try again shortly, or use Quick Access below.');
+        setError('Server is starting up. If you created an account, please try again in 30 seconds.');
+      } else if (msg === 'WRONG_CREDENTIALS') {
+        setError('Email or password is wrong. Please check and try again.');
       } else {
-        setError('Invalid email or password. Please try again.');
+        setError('Email or password is wrong. Please check and try again.');
       }
     } finally {
       setLoading(false);
