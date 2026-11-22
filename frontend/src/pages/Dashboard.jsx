@@ -78,12 +78,16 @@ function TicketRow({ ticket, onClick }) {
 // STUDENT DASHBOARD
 // ═══════════════════════════════════════════════════════════════
 function StudentDashboard({ user, tickets, notices, loading, navigate, setIsTicketModalOpen }) {
-  // Only show THIS user's tickets — never show demo tickets from other students
-  const myTickets = tickets.filter(t => 
-    t.created_by === user?.id || 
-    t.student_email === user?.email ||
-    (t.isLocal && (t.created_by === user?.id || t.student_email === user?.email))
-  );
+  // Only show THIS user's tickets — match by email (most reliable) or id
+  const myTickets = tickets.filter(t => {
+    const myEmail = user?.email?.toLowerCase();
+    const myId = user?.id;
+    return (
+      (t.student_email && t.student_email.toLowerCase() === myEmail) ||
+      t.created_by === myId ||
+      (t.isLocal && t.student_email?.toLowerCase() === myEmail)
+    );
+  });
   const openCount = myTickets.filter(t => t.status === 'open' || t.status === 'in_progress').length;
   const avatarUrl = getAvatarUrl(user);
   const [avatarErr, setAvatarErr] = useState(false);
@@ -445,16 +449,28 @@ export default function Dashboard() {
   useEffect(() => {
     const fetchData = async () => {
       try {
+        // Always load local tickets immediately (instant, no server needed)
+        const localTickets = JSON.parse(localStorage.getItem('local_tickets') || '[]');
+
         const [ticketsData, noticesData] = await Promise.allSettled([
           api.getTickets(),
           api.getNotices(),
         ]);
-        setTickets(ticketsData.status === 'fulfilled' ? ticketsData.value : []);
+
+        // Merge backend tickets + local tickets (deduplicate by id)
+        const backendTickets = ticketsData.status === 'fulfilled' ? ticketsData.value : [];
+        const backendIds = new Set(backendTickets.map(t => t.id));
+        const unsyncedLocal = localTickets.filter(t => !backendIds.has(t.id));
+        setTickets([...unsyncedLocal, ...backendTickets]);
+
         setNotices(noticesData.status === 'fulfilled' ? noticesData.value.slice(0, 5) : []);
         // Analytics is optional — try separately
         api.getAnalytics().then(d => { if (d) setAnalytics(d); }).catch(() => {});
       } catch (err) {
         console.error('Dashboard fetch error:', err);
+        // Fallback: at least show local tickets
+        const localTickets = JSON.parse(localStorage.getItem('local_tickets') || '[]');
+        setTickets(localTickets);
       } finally {
         setLoading(false);
       }
@@ -485,7 +501,10 @@ export default function Dashboard() {
         <AdminDashboard {...sharedProps} setIsTicketModalOpen={setIsTicketModalOpen} setIsNoticeModalOpen={setIsNoticeModalOpen} setIsFaqModalOpen={setIsFaqModalOpen} />
       )}
 
-      <TicketModal   isOpen={isTicketModalOpen}  onClose={() => setIsTicketModalOpen(false)}  onCreated={() => api.getTickets().then(setTickets)} />
+      <TicketModal   isOpen={isTicketModalOpen}  onClose={() => setIsTicketModalOpen(false)}  onCreated={(newTicket) => {
+        // Add new ticket to list immediately (don't wait for refetch)
+        setTickets(prev => [newTicket, ...prev]);
+      }} />
       <NoticeEditModal isOpen={isNoticeModalOpen} onClose={() => setIsNoticeModalOpen(false)} onSaved={() => api.getNotices().then(setNotices)} />
       <FaqModal      isOpen={isFaqModalOpen}     onClose={() => setIsFaqModalOpen(false)}     onSaved={() => {}} />
     </>
