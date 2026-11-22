@@ -4,10 +4,36 @@ export const BACKEND_URL = "https://eduassist-dypsem-backend.onrender.com";
 export const API_BASE_URL = `${BACKEND_URL}/api/v1`;
 
 const getAuthHeaders = () => {
-  const token = localStorage.getItem("helpdesk_token");
+  const token = localStorage.getItem("helpdesk_token") || localStorage.getItem("eduassist_session");
+  let userEmail = '';
+  let userId = '';
+  let userName = '';
+  let userRole = '';
+  try {
+    const session = localStorage.getItem("eduassist_session");
+    if (session && session.startsWith("local_")) {
+      const p = JSON.parse(atob(session.slice(6)));
+      userEmail = p.email || '';
+      userId = p.id || '';
+      userRole = p.role || '';
+    }
+    const demo = localStorage.getItem("demo_user");
+    if (demo) {
+      const du = JSON.parse(demo);
+      userEmail = du.email || userEmail;
+      userId = du.id || userId;
+      userName = du.full_name || userName;
+      userRole = du.role || userRole;
+    }
+  } catch {}
+
   return {
     "Content-Type": "application/json",
-    ...(token ? { Authorization: `Bearer ${token}` } : {})
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...(userEmail ? { "X-User-Email": userEmail } : {}),
+    ...(userId ? { "X-User-Id": userId } : {}),
+    ...(userName ? { "X-User-Name": userName } : {}),
+    ...(userRole ? { "X-User-Role": userRole } : {}),
   };
 };
 
@@ -478,26 +504,74 @@ export const api = {
 
   // ── Notices ───────────────────────────────────────────────────
   getNotices: async (filters = {}) => {
+    const localNotices = JSON.parse(localStorage.getItem('local_notices') || '[]');
     try {
       const params = new URLSearchParams();
       if (filters.category) params.append("category", filters.category);
       if (filters.pinned !== undefined) params.append("pinned", filters.pinned);
       const res = await apiFetch(`${API_BASE_URL}/notices?${params.toString()}`, { headers: getAuthHeaders() });
-      if (!res.ok) return DEMO_NOTICES;
+      if (!res.ok) {
+        const localIds = new Set(localNotices.map(n => n.id));
+        return [...localNotices, ...DEMO_NOTICES.filter(n => !localIds.has(n.id))];
+      }
       const data = await res.json();
-      return Array.isArray(data) && data.length > 0 ? data : DEMO_NOTICES;
+      const backendNotices = Array.isArray(data) && data.length > 0 ? data : DEMO_NOTICES;
+      const bIds = new Set(backendNotices.map(n => n.id));
+      const unsynced = localNotices.filter(n => !bIds.has(n.id));
+      return [...unsynced, ...backendNotices];
     } catch {
-      return DEMO_NOTICES;
+      const localIds = new Set(localNotices.map(n => n.id));
+      return [...localNotices, ...DEMO_NOTICES.filter(n => !localIds.has(n.id))];
     }
   },
 
   createNotice: async (data) => {
-    const res = await apiFetch(`${API_BASE_URL}/notices`, {
-      method: "POST",
-      headers: getAuthHeaders(),
-      body: JSON.stringify(data)
-    });
-    return res.json();
+    const localNotice = {
+      id: 'notice-' + Date.now(),
+      title: data.title,
+      content: data.content,
+      category: data.category || 'General',
+      department_id: data.department_id || null,
+      attachment_name: data.attachment_name || null,
+      attachment_url: data.attachment_url || null,
+      file_name: data.file_name || data.attachment_name || null,
+      author_name: data.author_name || 'Faculty / Staff',
+      pinned: data.pinned || false,
+      created_at: new Date().toISOString(),
+      is_local: true
+    };
+
+    // Save locally
+    try {
+      const existing = JSON.parse(localStorage.getItem('local_notices') || '[]');
+      existing.unshift(localNotice);
+      localStorage.setItem('local_notices', JSON.stringify(existing));
+    } catch {}
+
+    // Auto RAG indexing locally for AI ChatBot
+    try {
+      const ragChunks = JSON.parse(localStorage.getItem('rag_notice_chunks') || '[]');
+      ragChunks.unshift({
+        id: 'chunk-' + Date.now(),
+        document_id: localNotice.id,
+        title: localNotice.title,
+        content: `NOTICE: ${localNotice.title}\nCATEGORY: ${localNotice.category}\nDATE: ${new Date().toLocaleDateString()}\nATTACHED FILE: ${localNotice.attachment_name || 'None'}\nDETAILS:\n${localNotice.content}`,
+        metadata: { category: localNotice.category, file: localNotice.attachment_name }
+      });
+      localStorage.setItem('rag_notice_chunks', JSON.stringify(ragChunks));
+    } catch {}
+
+    window.dispatchEvent(new CustomEvent('eduassist_notice_created', { detail: localNotice }));
+
+    try {
+      const res = await apiFetch(`${API_BASE_URL}/notices`, {
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: JSON.stringify(data)
+      });
+      if (res.ok) return res.json();
+    } catch {}
+    return localNotice;
   },
 
   updateNotice: async (noticeId, data) => {

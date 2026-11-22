@@ -9,7 +9,9 @@ import {
   Trash2, 
   Filter,
   CheckCircle2,
-  Users
+  Users,
+  FileText,
+  Download
 } from 'lucide-react';
 import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -38,6 +40,13 @@ export default function Notices() {
 
   useEffect(() => {
     fetchNotices();
+    const handleUpdate = () => fetchNotices();
+    window.addEventListener('eduassist_notice_created', handleUpdate);
+    window.addEventListener('storage', handleUpdate);
+    return () => {
+      window.removeEventListener('eduassist_notice_created', handleUpdate);
+      window.removeEventListener('storage', handleUpdate);
+    };
   }, []);
 
   const handleTogglePin = async (noticeId) => {
@@ -196,6 +205,35 @@ export default function Notices() {
               {/* Title & Body */}
               <h3 className="text-base font-bold text-slate-900">{notice.title}</h3>
               <p className="text-xs text-slate-700 leading-relaxed whitespace-pre-wrap">{notice.content}</p>
+
+              {/* Attached Document / Circular File */}
+              {(notice.attachment_name || notice.attachment_url || notice.file_name) && (
+                <div className="flex items-center justify-between p-3 rounded-xl bg-blue-50/70 border border-blue-200">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="w-8 h-8 rounded-lg bg-red-100 flex items-center justify-center flex-shrink-0">
+                      <FileText className="w-4 h-4 text-red-600" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-xs font-bold text-slate-900 truncate">
+                        {notice.attachment_name || notice.file_name || 'Official_Circular.pdf'}
+                      </p>
+                      <p className="text-[10px] text-blue-700 font-medium">Official Attached Circular (RAG Indexed)</p>
+                    </div>
+                  </div>
+                  {notice.attachment_url && (
+                    <a
+                      href={notice.attachment_url}
+                      download={notice.attachment_name || "Official_Circular.pdf"}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-900 hover:bg-blue-800 text-white text-[11px] font-bold shadow-sm transition-all flex-shrink-0"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      <span>View</span>
+                    </a>
+                  )}
+                </div>
+              )}
 
               <div className="pt-2 text-[11px] text-slate-400 flex items-center justify-between border-t border-slate-100">
                 <span>Issued by: <strong className="text-slate-600">{notice.created_by_name || 'Academic Registry'}</strong></span>

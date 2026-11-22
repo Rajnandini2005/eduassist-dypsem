@@ -93,10 +93,13 @@ export default function Tickets() {
       const tEmail = (t.student_email || '').toLowerCase().trim();
       const tName = (t.student_name || '').toLowerCase().trim();
       const tCreated = t.created_by;
+      const tStudentId = t.student_id;
       return (
         (myEmail && tEmail === myEmail) ||
-        (myId && tCreated === myId) ||
-        (myName && tName === myName)
+        (myId && (tCreated === myId || tStudentId === myId)) ||
+        (myName && tName === myName) ||
+        (myName && tName.includes(myName)) ||
+        (myName && myName.includes(tName))
       );
     }
     if (role === 'faculty') {

@@ -155,6 +155,26 @@ DYPSEM is a constituent unit of **D. Y. Patil Education Society (Deemed to be Un
 
 function getLocalAnswer(query) {
   const q = query.toLowerCase();
+
+  // 1. Check dynamically uploaded notices & RAG chunks from faculty (instant RAG retrieval)
+  try {
+    const ragChunks = JSON.parse(localStorage.getItem('rag_notice_chunks') || '[]');
+    for (const chunk of ragChunks) {
+      const words = (chunk.title + ' ' + (chunk.content || '')).toLowerCase().split(/\s+/).filter(w => w.length > 3);
+      if (words.some(w => q.includes(w)) || q.includes('notice') || q.includes('circular')) {
+        return `📢 **From Official Notice / Circular (RAG Indexed)**:\n\n**${chunk.title}**\n\n${chunk.content}\n\n*(Retrieved directly from DYPSEM notice board & document repository)*`;
+      }
+    }
+
+    const localNotices = JSON.parse(localStorage.getItem('local_notices') || '[]');
+    for (const notice of localNotices) {
+      const words = (notice.title + ' ' + (notice.content || '')).toLowerCase().split(/\s+/).filter(w => w.length > 3);
+      if (words.some(w => q.includes(w))) {
+        return `📢 **Latest Published Notice (RAG)**:\n\n**${notice.title}**\n\n${notice.content}\n\n${notice.attachment_name ? `📎 Attached Document: **${notice.attachment_name}**` : ''}\n*(Source: Official DYPSEM Faculty Circular)*`;
+      }
+    }
+  } catch {}
+
   for (const [, entry] of Object.entries(LOCAL_KB)) {
     if (entry.keywords.some(kw => q.includes(kw))) {
       return entry.answer;

@@ -40,7 +40,10 @@ def create_ticket(
     current_user: ProfileResponse = Depends(get_current_user)
 ):
     data = req.model_dump()
-    data["student_id"] = current_user.id
+    data["student_id"] = req.student_id or current_user.id
+    data["student_name"] = req.student_name or current_user.full_name
+    data["student_email"] = req.student_email or current_user.email
+    data["student_roll"] = req.student_roll or current_user.roll_no
     new_ticket = Database.create_ticket(data)
     return TicketResponse(**new_ticket)
 

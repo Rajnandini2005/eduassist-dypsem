@@ -40,6 +40,17 @@ const SEED_USERS = [
     roll_no: 'EMP-CSE-104',
   },
   {
+    id: 'user-rajnandini-001',
+    email: 'rajnandini@dypsem.edu.in',
+    password: 'EduAssist@2025#Dyp',
+    full_name: 'rajnandini',
+    role: 'student',
+    gender: 'female',
+    avatar: '/avatar-girl.jpg',
+    department: 'Computer Science & Engineering',
+    roll_no: '22CS0199',
+  },
+  {
     id: 'student-aarav-001',
     email: 'aarav.mehta@student.college.edu',
     password: 'password123',
@@ -259,26 +270,39 @@ export const AuthProvider = ({ children }) => {
       role: userData.role || 'student',
       department: userData.department || 'Computer Science & Engineering',
       roll_no: userData.roll_no || '',
+      gender: userData.gender || (userData.avatar?.includes('girl') ? 'female' : 'male'),
+      avatar: userData.avatar || (userData.gender === 'female' ? '/avatar-girl.jpg' : '/avatar-boy.jpg'),
       created_at: new Date().toISOString(),
     };
 
     // 1. Save locally (always works, 24/7, no server needed)
     try { saveLocalUser(newUser); } catch { /* ignore */ }
 
-    // 2. Try backend silently in background — NEVER blocks or throws
+    // 2. Try backend silently in background — also saves token when received!
     setTimeout(() => {
       try {
-        api.register({ ...userData, email: newUser.email })
-          .catch(() => { /* backend unavailable — ignore */ });
+        api.register({ 
+          email: newUser.email,
+          password: newUser.password,
+          full_name: newUser.full_name,
+          role: newUser.role,
+          department_id: "11111111-1111-1111-1111-111111111111",
+          roll_no: newUser.roll_no,
+          avatar_url: newUser.avatar,
+          gender: newUser.gender
+        }).then(res => {
+          if (res?.access_token) {
+            localStorage.setItem('helpdesk_token', res.access_token);
+          }
+        }).catch(() => { /* backend unavailable — ignore */ });
       } catch { /* ignore */ }
-    }, 200);
+    }, 100);
 
     // 3. Create local session and log in immediately
     try {
       const token = makeLocalToken(newUser);
       localStorage.setItem(LOCAL_SESSION_KEY, token);
       localStorage.removeItem('demo_user');
-      localStorage.removeItem('helpdesk_token');
     } catch { /* ignore storage errors */ }
 
     const { password: _pw, ...safeUser } = newUser;
@@ -291,7 +315,37 @@ export const AuthProvider = ({ children }) => {
   const switchDemoRole = async (role) => {
     setLoading(true);
     try {
-      // Try real backend first
+      // Check local registered users first to pick real account
+      const localUsers = getLocalUsers();
+      if (role === 'student') {
+        const student = localUsers.find(u => u.role === 'student' && u.email !== 'aarav.mehta@student.college.edu') || DEMO_USERS.student;
+        if (student && student.email !== 'aarav.mehta@student.college.edu') {
+          const token = makeLocalToken(student);
+          localStorage.setItem(LOCAL_SESSION_KEY, token);
+          localStorage.removeItem('demo_user');
+          const { password: _pw, ...safeUser } = student;
+          setIsDemoMode(false);
+          setUser(safeUser);
+          api.switchRole(role).then(res => {
+            if (res?.access_token) localStorage.setItem('helpdesk_token', res.access_token);
+          }).catch(() => {});
+          return safeUser;
+        }
+      } else if (role === 'admin') {
+        const adminUser = localUsers.find(u => u.email === 'madhura@dypsem.edu.in') || DEMO_USERS.admin;
+        const token = makeLocalToken(adminUser);
+        localStorage.setItem(LOCAL_SESSION_KEY, token);
+        localStorage.removeItem('demo_user');
+        const { password: _pw, ...safeUser } = adminUser;
+        setIsDemoMode(false);
+        setUser(safeUser);
+        api.switchRole(role).then(res => {
+          if (res?.access_token) localStorage.setItem('helpdesk_token', res.access_token);
+        }).catch(() => {});
+        return safeUser;
+      }
+
+      // Try real backend
       const res = await api.switchRole(role);
       localStorage.setItem('helpdesk_token', res.access_token);
       localStorage.removeItem('demo_user');

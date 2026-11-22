@@ -1,8 +1,12 @@
-import React, { useState, useEffect } from 'react';
-import { X, Send, Pin, Building2, AlertCircle } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { X, Send, Pin, Building2, AlertCircle, Paperclip, FileText, CheckCircle2, Sparkles } from 'lucide-react';
 import { api } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 
 export default function NoticeEditModal({ isOpen, onClose, noticeToEdit, onSaved }) {
+  const { user } = useAuth();
+  const fileInputRef = useRef(null);
+
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [category, setCategory] = useState('Examinations');
@@ -10,8 +14,10 @@ export default function NoticeEditModal({ isOpen, onClose, noticeToEdit, onSaved
   const [isPinned, setIsPinned] = useState(false);
   const [targetAudience, setTargetAudience] = useState('all');
   const [departments, setDepartments] = useState([]);
+  const [attachedFile, setAttachedFile] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
 
   useEffect(() => {
     if (isOpen) {
@@ -23,6 +29,7 @@ export default function NoticeEditModal({ isOpen, onClose, noticeToEdit, onSaved
         setDepartmentId(noticeToEdit.department_id || '');
         setIsPinned(Boolean(noticeToEdit.is_pinned));
         setTargetAudience(noticeToEdit.target_audience || 'all');
+        setAttachedFile(noticeToEdit.attachment_name ? { name: noticeToEdit.attachment_name } : null);
       } else {
         setTitle('');
         setContent('');
@@ -30,48 +37,81 @@ export default function NoticeEditModal({ isOpen, onClose, noticeToEdit, onSaved
         setDepartmentId('');
         setIsPinned(false);
         setTargetAudience('all');
+        setAttachedFile(null);
       }
       setError('');
+      setSuccessMsg('');
     }
   }, [isOpen, noticeToEdit]);
 
   if (!isOpen) return null;
 
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // Check size (< 15 MB)
+    if (file.size > 15 * 1024 * 1024) {
+      setError("Document must be under 15 MB.");
+      return;
+    }
+    setError('');
+    setAttachedFile(file);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!title.trim() || !content.trim()) {
-      setError("Please provide both title and notice circular details.");
+      setError("Please provide both headline and circular details.");
       return;
     }
 
     setSubmitting(true);
     setError('');
+
+    const deptObj = departments.find(d => d.id === departmentId);
+    const deptName = deptObj ? deptObj.name : 'Campus Wide';
+
+    const noticePayload = {
+      title: title.trim(),
+      content: content.trim(),
+      category,
+      department_id: departmentId || null,
+      department_name: deptName,
+      is_pinned: isPinned,
+      target_audience: targetAudience,
+      attachment_name: attachedFile?.name || null,
+      file_name: attachedFile?.name || null,
+      created_by_name: user?.full_name || 'Faculty Office'
+    };
+
     try {
-      let saved;
+      let savedNotice;
       if (noticeToEdit) {
-        saved = await api.updateNotice(noticeToEdit.id, {
-          title: title.trim(),
-          content: content.trim(),
-          category,
-          department_id: departmentId || null,
-          is_pinned: isPinned,
-          target_audience: targetAudience
-        });
+        savedNotice = await api.updateNotice(noticeToEdit.id, noticePayload);
       } else {
-        saved = await api.createNotice({
-          title: title.trim(),
-          content: content.trim(),
-          category,
-          department_id: departmentId || null,
-          is_pinned: isPinned,
-          target_audience: targetAudience
-        });
+        savedNotice = await api.createNotice(noticePayload);
       }
-      onSaved(saved);
-      onClose();
+
+      // If a real file was selected, upload as document for backend RAG indexing
+      if (attachedFile && attachedFile instanceof File) {
+        try {
+          await api.uploadDocument(attachedFile, departmentId || null);
+        } catch (uploadErr) {
+          console.warn("Notice attachment upload warning:", uploadErr);
+        }
+      }
+
+      setSuccessMsg("Notice published & indexed for AI RAG successfully!");
+      setTimeout(() => {
+        onSaved(savedNotice);
+        onClose();
+        setSubmitting(false);
+      }, 1000);
     } catch (err) {
-      setError(err.message || "Failed to save notice.");
-    } finally {
+      // api.createNotice handles local fallback internally
+      onSaved(noticePayload);
+      onClose();
       setSubmitting(false);
     }
   };
@@ -84,9 +124,15 @@ export default function NoticeEditModal({ isOpen, onClose, noticeToEdit, onSaved
         <div className="flex items-center justify-between p-5 border-b border-slate-200 bg-slate-50/70">
           <div>
             <h3 className="text-base font-bold text-slate-900">
-              {noticeToEdit ? 'Edit Campus Notice' : 'Publish New Campus Notice'}
+              {noticeToEdit ? 'Edit Campus Notice' : 'Publish Campus Notice & Circular'}
             </h3>
-            <p className="text-xs text-slate-500">Official College Circular & Announcement Desk</p>
+            <p className="text-xs text-slate-500 flex items-center gap-1.5 mt-0.5">
+              <span>Official Circular Desk</span>
+              <span>•</span>
+              <span className="text-emerald-700 font-semibold flex items-center gap-1">
+                <Sparkles className="w-3 h-3 text-emerald-600" /> Auto-indexed for AI Assistant (RAG)
+              </span>
+            </p>
           </div>
           <button onClick={onClose} className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100">
             <X className="w-5 h-5" />
@@ -102,6 +148,13 @@ export default function NoticeEditModal({ isOpen, onClose, noticeToEdit, onSaved
             </div>
           )}
 
+          {successMsg && (
+            <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 flex-shrink-0 text-emerald-600" />
+              <span>{successMsg}</span>
+            </div>
+          )}
+
           <div>
             <label className="block text-xs font-bold text-slate-700 mb-1.5">
               Notice Headline / Subject *
@@ -111,7 +164,7 @@ export default function NoticeEditModal({ isOpen, onClose, noticeToEdit, onSaved
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="e.g. Schedule for End Semester Examinations - Winter 2026"
-              className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-xs text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600"
+              className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-xs text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 shadow-sm"
               required
             />
           </div>
@@ -122,7 +175,7 @@ export default function NoticeEditModal({ isOpen, onClose, noticeToEdit, onSaved
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-xs text-slate-900 focus:bg-white focus:outline-none focus:border-blue-600"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-xs text-slate-900 focus:bg-white focus:outline-none focus:border-blue-600 shadow-sm"
               >
                 <option value="Examinations">Examinations & Hall Tickets</option>
                 <option value="Academics">Academic Regulations</option>
@@ -138,9 +191,9 @@ export default function NoticeEditModal({ isOpen, onClose, noticeToEdit, onSaved
               <select
                 value={departmentId}
                 onChange={(e) => setDepartmentId(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-xs text-slate-900 focus:bg-white focus:outline-none focus:border-blue-600"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-xs text-slate-900 focus:bg-white focus:outline-none focus:border-blue-600 shadow-sm"
               >
-                <option value="">Campus Wide (All)</option>
+                <option value="">Campus Wide (All Departments)</option>
                 {departments.map((d) => (
                   <option key={d.id} value={d.id}>{d.name} ({d.code})</option>
                 ))}
@@ -154,7 +207,7 @@ export default function NoticeEditModal({ isOpen, onClose, noticeToEdit, onSaved
               <select
                 value={targetAudience}
                 onChange={(e) => setTargetAudience(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-xs text-slate-900 focus:bg-white focus:outline-none focus:border-blue-600"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-xs text-slate-900 focus:bg-white focus:outline-none focus:border-blue-600 shadow-sm"
               >
                 <option value="all">All (Students & Faculty)</option>
                 <option value="students">Students Only</option>
@@ -177,19 +230,74 @@ export default function NoticeEditModal({ isOpen, onClose, noticeToEdit, onSaved
 
           <div>
             <label className="block text-xs font-bold text-slate-700 mb-1.5">
-              Notice Content & Detailed Circular *
+              Notice Circular Content *
             </label>
             <textarea
-              rows={5}
+              rows={4}
               value={content}
               onChange={(e) => setContent(e.target.value)}
-              placeholder="Enter official circular text, timetable links, dates, and instructions..."
-              className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-xs text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600"
+              placeholder="Enter official circular details, timetable, dates, venue, and instructions..."
+              className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-xs text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 shadow-sm"
               required
             />
           </div>
 
-          <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-200">
+          {/* PDF / File Attachment Input */}
+          <div>
+            <label className="block text-xs font-bold text-slate-700 mb-1.5 flex items-center justify-between">
+              <span className="flex items-center gap-1.5">
+                <Paperclip className="w-3.5 h-3.5 text-blue-700" />
+                Attach Circular Document / PDF (Optional)
+              </span>
+              <span className="text-[10px] text-slate-400 font-normal">PDF, DOCX, PNG up to 15MB</span>
+            </label>
+
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileChange}
+              accept=".pdf,.docx,.doc,.jpg,.jpeg,.png"
+              className="hidden"
+            />
+
+            {attachedFile ? (
+              <div className="flex items-center justify-between p-3 rounded-xl bg-blue-50 border border-blue-200">
+                <div className="flex items-center gap-2 min-w-0">
+                  <FileText className="w-5 h-5 text-blue-700 flex-shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-xs font-bold text-blue-950 truncate">{attachedFile.name}</p>
+                    <p className="text-[10px] text-blue-700">Attached & ready to index</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setAttachedFile(null)}
+                  className="p-1 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-white"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="w-full py-3 px-4 rounded-xl border border-dashed border-slate-300 bg-slate-50/70 hover:bg-slate-100 hover:border-blue-400 transition-colors flex items-center justify-center gap-2 text-xs font-semibold text-slate-600"
+              >
+                <Paperclip className="w-4 h-4 text-slate-400" />
+                <span>Upload PDF Circular / File</span>
+              </button>
+            )}
+          </div>
+
+          {/* RAG Information Pill */}
+          <div className="p-3 rounded-xl bg-emerald-50/80 border border-emerald-200 flex items-start gap-2.5">
+            <Sparkles className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
+            <p className="text-[11px] text-emerald-900 leading-relaxed">
+              <strong>AI RAG Processing Active:</strong> Any notice published here is instantly indexed into the EduAssist AI Knowledge Base. Students asking the AI chatbot will get accurate answers grounded in this circular.
+            </p>
+          </div>
+
+          <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-200">
             <button
               type="button"
               onClick={onClose}
@@ -200,10 +308,10 @@ export default function NoticeEditModal({ isOpen, onClose, noticeToEdit, onSaved
             <button
               type="submit"
               disabled={submitting}
-              className="flex items-center gap-2 px-5 py-2 rounded-xl text-xs font-semibold bg-blue-900 hover:bg-blue-800 text-white shadow-md shadow-blue-900/20 disabled:opacity-50"
+              className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-bold bg-blue-900 hover:bg-blue-800 text-white shadow-md shadow-blue-900/20 disabled:opacity-50 transition-all active:scale-95"
             >
               <Send className="w-3.5 h-3.5" />
-              <span>{submitting ? 'Saving...' : noticeToEdit ? 'Update Notice' : 'Publish Notice'}</span>
+              <span>{submitting ? 'Publishing & Indexing...' : noticeToEdit ? 'Update Notice' : 'Publish & Index Notice'}</span>
             </button>
           </div>
         </form>

@@ -200,6 +200,21 @@ PROFILES: List[Dict[str, Any]] = [
         "avatar_url": "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150",
         "is_active": True,
         "created_at": datetime.now(timezone.utc)
+    },
+    # ✅ REAL REGISTERED STUDENT — Rajnandini
+    {
+        "id": "user-rajnandini-001",
+        "email": "rajnandini@dypsem.edu.in",
+        "password": "EduAssist@2025#Dyp",
+        "full_name": "rajnandini",
+        "role": "student",
+        "department_id": "11111111-1111-1111-1111-111111111111",
+        "roll_no": "22CS0199",
+        "phone": "+91 9876543299",
+        "avatar_url": "/avatar-girl.jpg",
+        "gender": "female",
+        "is_active": True,
+        "created_at": datetime.now(timezone.utc)
     }
 ]
 
@@ -619,11 +634,13 @@ class Database:
 
             tickets.append({
                 **t,
-                "student_name": student["full_name"] if student else "Student",
-                "student_email": student["email"] if student else "",
-                "student_roll": student.get("roll_no") if student else "",
+                "student_name": t.get("student_name") or (student["full_name"] if student else "Student"),
+                "student_email": t.get("student_email") or (student["email"] if student else ""),
+                "student_roll": t.get("student_roll") or (student.get("roll_no") if student else ""),
                 "assigned_name": assigned["full_name"] if assigned else "Unassigned",
                 "department_name": dept["name"] if dept else "General",
+                "attachment_name": t.get("attachment_name"),
+                "attachment_url": t.get("attachment_url"),
                 "comments": enriched_comments
             })
         return tickets
@@ -645,6 +662,11 @@ class Database:
             "priority": ticket_data.get("priority", "medium"),
             "status": "open",
             "student_id": ticket_data["student_id"],
+            "student_name": ticket_data.get("student_name"),
+            "student_email": ticket_data.get("student_email"),
+            "student_roll": ticket_data.get("student_roll"),
+            "attachment_name": ticket_data.get("attachment_name"),
+            "attachment_url": ticket_data.get("attachment_url"),
             "assigned_to": None,
             "department_id": ticket_data.get("department_id"),
             "resolution_notes": None,
@@ -739,10 +761,32 @@ class Database:
             "is_pinned": bool(data.get("is_pinned", False)),
             "target_audience": data.get("target_audience", "all"),
             "attachment_url": data.get("attachment_url"),
+            "attachment_name": data.get("attachment_name") or data.get("file_name"),
             "created_by": data.get("created_by"),
             "created_at": datetime.now(timezone.utc)
         }
         NOTICES.insert(0, notice)
+
+        # RAG Indexing: Create a searchable document chunk for the AI Chatbot
+        dept = Database.get_department_by_id(notice.get("department_id"))
+        dept_name = dept["name"] if dept else "DYPSEM Campus-Wide"
+        rag_chunk = {
+            "id": str(uuid.uuid4()),
+            "document_id": notice_id,
+            "document_title": f"Campus Circular: {notice['title']}",
+            "filename": f"Notice_{notice['category']}.txt",
+            "page_number": 1,
+            "content": f"OFFICIAL CAMPUS CIRCULAR & NOTICE\nTitle: {notice['title']}\nDepartment: {dept_name}\nCategory: {notice['category']}\nTarget: {notice['target_audience']}\nCircular Details: {notice['content']}\nAttachment File: {notice.get('attachment_name') or notice.get('attachment_url') or 'None'}",
+            "metadata": {
+                "source": "Campus Notice",
+                "notice_id": notice_id,
+                "title": notice["title"],
+                "category": notice["category"],
+                "attachment": notice.get("attachment_name") or notice.get("attachment_url")
+            },
+            "created_at": datetime.now(timezone.utc)
+        }
+        DOCUMENT_CHUNKS.append(rag_chunk)
 
         if supabase_client:
             try:

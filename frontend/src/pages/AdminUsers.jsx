@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Users, Shield, GraduationCap, UserCheck, Search, CheckCircle2, UserX } from 'lucide-react';
 import { api } from '../services/api';
+import { getAvatarUrl } from '../utils/avatar';
 
 export default function AdminUsers() {
   const [users, setUsers] = useState([]);
@@ -115,7 +116,7 @@ export default function AdminUsers() {
                   <td className="py-3.5 px-4">
                     <div className="flex items-center gap-3">
                       <img
-                        src={u.avatar_url || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150"}
+                        src={getAvatarUrl(u)}
                         alt={u.full_name}
                         className="w-9 h-9 rounded-lg object-cover ring-1 ring-slate-200"
                       />

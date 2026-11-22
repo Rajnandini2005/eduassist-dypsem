@@ -16,6 +16,7 @@ class ProfileBase(BaseModel):
     roll_no: Optional[str] = None
     phone: Optional[str] = None
     avatar_url: Optional[str] = None
+    gender: Optional[str] = None
 
 class ProfileCreate(ProfileBase):
     password: str
@@ -118,6 +119,12 @@ class TicketCreate(BaseModel):
     category: str = "General"
     priority: str = "medium"
     department_id: Optional[str] = None
+    student_id: Optional[str] = None
+    student_name: Optional[str] = None
+    student_email: Optional[str] = None
+    student_roll: Optional[str] = None
+    attachment_name: Optional[str] = None
+    attachment_url: Optional[str] = None
 
 class TicketStatusUpdate(BaseModel):
     status: str
@@ -145,6 +152,8 @@ class TicketResponse(BaseModel):
     resolution_notes: Optional[str] = None
     resolved_at: Optional[datetime] = None
     created_at: Optional[datetime] = None
+    attachment_name: Optional[str] = None
+    attachment_url: Optional[str] = None
     comments: List[TicketCommentResponse] = []
 
 # ----------------- Notices -----------------
@@ -156,6 +165,8 @@ class NoticeCreate(BaseModel):
     is_pinned: bool = False
     target_audience: str = "all"
     attachment_url: Optional[str] = None
+    attachment_name: Optional[str] = None
+    file_name: Optional[str] = None
 
 class NoticeUpdate(BaseModel):
     title: Optional[str] = None
@@ -165,6 +176,8 @@ class NoticeUpdate(BaseModel):
     is_pinned: Optional[bool] = None
     target_audience: Optional[str] = None
     attachment_url: Optional[str] = None
+    attachment_name: Optional[str] = None
+    file_name: Optional[str] = None
 
 class NoticeResponse(NoticeCreate):
     id: str

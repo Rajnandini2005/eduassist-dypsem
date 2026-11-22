@@ -41,6 +41,7 @@ export default function Login() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [signupRole, setSignupRole] = useState('student'); // student | faculty
+  const [avatarChoice, setAvatarChoice] = useState('girl'); // 'boy' | 'girl'
   const [showPass, setShowPass] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [error, setError] = useState('');
@@ -103,6 +104,8 @@ export default function Login() {
         password,
         full_name: fullName.trim(),
         role: signupRole,
+        gender: avatarChoice === 'girl' ? 'female' : 'male',
+        avatar: avatarChoice === 'girl' ? '/avatar-girl.jpg' : '/avatar-boy.jpg'
       });
       // Success — go to dashboard
       navigate('/');
@@ -148,27 +151,37 @@ export default function Login() {
     setSignupRole('student');
   };
 
+  // Inspect local users for dynamic personalized quick access
+  const registeredUsers = (() => {
+    try {
+      return JSON.parse(localStorage.getItem('eduassist_users') || '[]');
+    } catch {
+      return [];
+    }
+  })();
+  const registeredStudent = registeredUsers.find(u => u.role === 'student' && u.email !== 'aarav.mehta@student.college.edu');
+
   const demoRoles = [
     {
       id: 'student',
-      label: 'Student',
-      sublabel: 'B.Tech / M.Tech',
+      label: registeredStudent ? registeredStudent.full_name : 'Student',
+      sublabel: registeredStudent ? 'Student Account' : 'Aarav Mehta',
       icon: <GraduationCap className="w-5 h-5" />,
       iconBg: 'bg-blue-100 text-blue-700',
       btnClass: 'bg-[#0f2d52] hover:bg-blue-900 text-white',
     },
     {
       id: 'faculty',
-      label: 'Faculty',
-      sublabel: 'Department',
+      label: 'Prof. Priya',
+      sublabel: 'Faculty / Staff',
       icon: <UserCheck className="w-5 h-5" />,
       iconBg: 'bg-amber-100 text-amber-700',
       btnClass: 'bg-amber-500 hover:bg-amber-600 text-white',
     },
     {
       id: 'admin',
-      label: 'Admin',
-      sublabel: 'System',
+      label: 'Madhura',
+      sublabel: 'Administrator',
       icon: <ShieldCheck className="w-5 h-5" />,
       iconBg: 'bg-rose-100 text-rose-700',
       btnClass: 'bg-rose-600 hover:bg-rose-700 text-white',
@@ -339,6 +352,53 @@ export default function Login() {
               <p className="text-[10px] text-slate-400 mt-1.5 text-center">
                 Selected: <span className="font-bold text-slate-600">{signupRole === 'student' ? '🎓 Student' : '🏫 Faculty'}</span>
               </p>
+            </div>
+
+            {/* AVATAR / GENDER SELECTOR */}
+            <div>
+              <label className="block text-xs font-bold text-slate-600 mb-2">
+                Select Profile Avatar <span className="text-red-500">*</span>
+              </label>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setAvatarChoice('boy')}
+                  className={`flex items-center gap-3 p-3 rounded-2xl border-2 transition-all ${
+                    avatarChoice === 'boy'
+                      ? 'bg-blue-50 border-blue-600 shadow-md ring-2 ring-blue-300'
+                      : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
+                  }`}
+                >
+                  <img
+                    src="/avatar-boy.jpg"
+                    alt="Boy Avatar"
+                    className="w-12 h-12 rounded-xl object-cover ring-2 ring-blue-500 shadow-sm"
+                  />
+                  <div className="text-left">
+                    <p className="text-xs font-black text-slate-900">👦 Boy</p>
+                    <p className="text-[10px] text-slate-500">Male Profile</p>
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAvatarChoice('girl')}
+                  className={`flex items-center gap-3 p-3 rounded-2xl border-2 transition-all ${
+                    avatarChoice === 'girl'
+                      ? 'bg-purple-50 border-purple-600 shadow-md ring-2 ring-purple-300'
+                      : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
+                  }`}
+                >
+                  <img
+                    src="/avatar-girl.jpg"
+                    alt="Girl Avatar"
+                    className="w-12 h-12 rounded-xl object-cover ring-2 ring-purple-500 shadow-sm"
+                  />
+                  <div className="text-left">
+                    <p className="text-xs font-black text-slate-900">👧 Girl</p>
+                    <p className="text-[10px] text-slate-500">Female Profile</p>
+                  </div>
+                </button>
+              </div>
             </div>
 
             {/* Full Name */}
