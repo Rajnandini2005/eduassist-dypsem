@@ -15,6 +15,21 @@ services:
       - key: ENVIRONMENT
         value: production
       - key: CORS_ORIGINS
-        value: https://eduassist-dypsem.onrender.com
+        value: https://eduassist-dypsem.onrender.com,https://eduassist-dypsem-frontend.onrender.com
       - key: GEMINI_API_KEY
         sync: false
+
+  - type: web
+    name: eduassist-dypsem-frontend
+    runtime: static
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    headers:
+      - path: /*
+        name: Cache-Control
+        value: no-cache
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
