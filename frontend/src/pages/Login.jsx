@@ -23,11 +23,7 @@ function getPasswordStrength(password) {
 
 function validatePassword(password) {
   const errors = [];
-  if (password.length < 8) errors.push('At least 8 characters');
-  if (!/[A-Z]/.test(password)) errors.push('One uppercase letter');
-  if (!/[a-z]/.test(password)) errors.push('One lowercase letter');
-  if (!/[0-9]/.test(password)) errors.push('One number');
-  if (!/[^A-Za-z0-9]/.test(password)) errors.push('One symbol (e.g. @#$%!)');
+  if (!password || password.length < 6) errors.push('At least 6 characters');
   return errors;
 }
 
@@ -244,7 +240,7 @@ export default function Login() {
       </div>
 
       {/* White card */}
-      <div className="flex-1 bg-slate-50 rounded-t-3xl -mt-6 px-5 pt-6 pb-8 overflow-y-auto">
+      <div className="flex-1 bg-slate-50 rounded-t-3xl -mt-6 px-5 pt-6 pb-28 overflow-y-auto">
 
         {/* College strip */}
         <div className="flex items-center gap-3 mb-5 p-3.5 rounded-2xl bg-blue-50 border border-blue-100">
@@ -528,7 +524,7 @@ export default function Login() {
               <label className="block text-xs font-bold text-slate-600 mb-1.5">
                 Password
                 <span className="ml-2 text-[9px] font-normal text-slate-400">
-                  (8+ chars, uppercase, lowercase, number, symbol)
+                  (minimum 6 characters)
                 </span>
               </label>
               <div className="relative">
@@ -584,11 +580,25 @@ export default function Login() {
                 </button>
               </div>
               {confirmPassword && password === confirmPassword && (
-                <p className="mt-1 text-[10px] text-green-500 flex items-center gap-1">
-                  <CheckCircle className="w-3 h-3" /> Passwords match ✓
+                <p className="mt-1.5 text-xs text-green-600 font-bold flex items-center gap-1">
+                  <CheckCircle className="w-3.5 h-3.5" /> Passwords match ✓
                 </p>
               )}
+              {confirmPassword && password !== confirmPassword && (
+                <div className="mt-1.5 p-2.5 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 font-semibold flex items-center gap-1.5">
+                  <AlertCircle className="w-4 h-4 flex-shrink-0 text-red-600" />
+                  <span>Passwords do not match! Please make sure both passwords are identical.</span>
+                </div>
+              )}
             </div>
+
+            {/* Error right above Submit button for mobile visibility */}
+            {error && (
+              <div className="p-3 bg-red-50 border-2 border-red-200 rounded-xl text-xs text-red-700 font-bold flex items-start gap-2 shadow-sm animate-shake">
+                <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5 text-red-600" />
+                <span>{error}</span>
+              </div>
+            )}
 
             {/* Submit */}
             <button type="submit" disabled={loading}
