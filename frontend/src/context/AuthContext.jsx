@@ -570,6 +570,20 @@ export const AuthProvider = ({ children }) => {
       throw new Error('This email is already registered. Please sign in.');
     }
 
+    const deptId = userData.department_id || (
+      userData.department?.includes('Placement') ? 'dept-placement-001' :
+      userData.department?.includes('Scholarship') ? 'dept-scholarship-001' :
+      userData.department?.includes('Academic') ? 'dept-academic-001' :
+      userData.department?.includes('Fee') ? 'dept-fee-001' :
+      userData.department?.includes('Library') ? 'dept-library-001' :
+      userData.department?.includes('AIML') ? '22222222-2222-2222-2222-222222222222' :
+      userData.department?.includes('Data Science') ? '33333333-3333-3333-3333-333333333333' :
+      userData.department?.includes('BCA') ? '44444444-4444-4444-4444-444444444444' :
+      userData.department?.includes('MCA') ? '55555555-5555-5555-5555-555555555555' :
+      userData.department?.includes('Exam') ? '77777777-7777-7777-7777-777777777777' :
+      '11111111-1111-1111-1111-111111111111'
+    );
+
     const newUser = {
       id: 'user-' + Date.now(),
       email: userData.email.trim().toLowerCase(),
@@ -577,6 +591,7 @@ export const AuthProvider = ({ children }) => {
       full_name: userData.full_name.trim(),
       role: userData.role || 'student',
       department: userData.department || 'Computer Science & Engineering',
+      department_id: deptId,
       roll_no: userData.roll_no || '',
       course: userData.course || 'B.Tech CSE',
       year_class: userData.year_class || 'F.Y. (1st Year)',
@@ -596,7 +611,7 @@ export const AuthProvider = ({ children }) => {
           password: newUser.password,
           full_name: newUser.full_name,
           role: newUser.role,
-          department_id: "11111111-1111-1111-1111-111111111111",
+          department_id: newUser.department_id,
           roll_no: newUser.roll_no,
           course: newUser.course,
           year_class: newUser.year_class,

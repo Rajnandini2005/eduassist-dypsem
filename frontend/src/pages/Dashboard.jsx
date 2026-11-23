@@ -282,7 +282,7 @@ function FacultyDashboard({ user, tickets, notices, analytics, navigate, setIsNo
           <div>
             <p className="text-blue-200 text-xs font-medium flex items-center gap-1.5"><Briefcase className="w-3 h-3" /> Faculty Workspace</p>
             <h2 className="text-xl font-black text-white mt-0.5">Hello, {user?.full_name?.split(' ')[0]} 👨‍🏫</h2>
-            <p className="text-blue-200 text-xs mt-1">DYPSEM · Department Coordinator</p>
+            <p className="text-blue-200 text-xs mt-1">DYPSEM · {user?.department || 'Department Coordinator'}</p>
           </div>
           <div className="w-14 h-14 rounded-2xl overflow-hidden border-2 border-amber-400/40 shadow-lg flex-shrink-0">
             <img

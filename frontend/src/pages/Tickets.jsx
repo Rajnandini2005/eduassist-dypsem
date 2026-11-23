@@ -17,14 +17,17 @@ import { useAuth } from '../context/AuthContext';
 import TicketModal from '../components/TicketModal';
 
 const FALLBACK_DEPTS = [
-  { id: '1', code: 'CSE', name: 'Computer Science & Engineering' },
-  { id: '2', code: 'AIML', name: 'Artificial Intelligence & Machine Learning' },
-  { id: '3', code: 'DS', name: 'Data Science' },
-  { id: '4', code: 'BCA', name: 'Bachelor of Computer Applications' },
-  { id: '5', code: 'MCA', name: 'Master of Computer Applications' },
-  { id: '6', code: 'ADM', name: 'Admissions & Scholarships' },
-  { id: '7', code: 'EXAM', name: 'Examination Cell' },
-  { id: '8', code: 'ACC', name: 'Accounts & Finance' },
+  { id: 'dept-placement-001', code: 'PLACE', name: 'Placement Department (Placement Dept)' },
+  { id: 'dept-scholarship-001', code: 'SCHOL', name: 'Scholarship Department (Scholarship Dept)' },
+  { id: 'dept-academic-001', code: 'ACAD', name: 'Academic Department (Academic Dept)' },
+  { id: 'dept-fee-001', code: 'FEE', name: 'Fee Department (Accounts & Fee Dept)' },
+  { id: 'dept-library-001', code: 'LIB', name: 'Library Department (Library Dept)' },
+  { id: '11111111-1111-1111-1111-111111111111', code: 'CSE', name: 'Computer Science & Engineering' },
+  { id: '22222222-2222-2222-2222-222222222222', code: 'AIML', name: 'Artificial Intelligence & Machine Learning' },
+  { id: '33333333-3333-3333-3333-333333333333', code: 'DS', name: 'Data Science' },
+  { id: '44444444-4444-4444-4444-444444444444', code: 'BCA', name: 'Bachelor of Computer Applications' },
+  { id: '55555555-5555-5555-5555-555555555555', code: 'MCA', name: 'Master of Computer Applications' },
+  { id: '77777777-7777-7777-7777-777777777777', code: 'EXAM', name: 'Examination Cell' },
 ];
 
 export default function Tickets() {

@@ -31,6 +31,20 @@ function validatePassword(password) {
   return errors;
 }
 
+const FACULTY_DEPARTMENTS = [
+  { id: 'dept-placement-001', code: 'PLACE', name: 'Placement Department (Placement Dept)' },
+  { id: 'dept-scholarship-001', code: 'SCHOL', name: 'Scholarship Department (Scholarship Dept)' },
+  { id: 'dept-academic-001', code: 'ACAD', name: 'Academic Department (Academic Dept)' },
+  { id: 'dept-fee-001', code: 'FEE', name: 'Fee Department (Accounts & Fee Dept)' },
+  { id: 'dept-library-001', code: 'LIB', name: 'Library Department (Library Dept)' },
+  { id: '11111111-1111-1111-1111-111111111111', code: 'CSE', name: 'Computer Science & Engineering (CSE Dept)' },
+  { id: '22222222-2222-2222-2222-222222222222', code: 'AIML', name: 'Artificial Intelligence & Machine Learning' },
+  { id: '33333333-3333-3333-3333-333333333333', code: 'DS', name: 'Data Science' },
+  { id: '44444444-4444-4444-4444-444444444444', code: 'BCA', name: 'Bachelor of Computer Applications' },
+  { id: '55555555-5555-5555-5555-555555555555', code: 'MCA', name: 'Master of Computer Applications' },
+  { id: '77777777-7777-7777-7777-777777777777', code: 'EXAM', name: 'Examination Cell (Exam Dept)' },
+];
+
 export default function Login() {
   const { login, register, switchDemoRole } = useAuth();
   const navigate = useNavigate();
@@ -44,6 +58,9 @@ export default function Login() {
   const [course, setCourse] = useState('B.Tech CSE');
   const [yearClass, setYearClass] = useState('F.Y. (1st Year)');
   const [rollNo, setRollNo] = useState('');
+  const [facultyDeptId, setFacultyDeptId] = useState('dept-academic-001');
+  const [facultyDesignation, setFacultyDesignation] = useState('Assistant Professor');
+  const [facultyEmpId, setFacultyEmpId] = useState('');
   const [showPass, setShowPass] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [error, setError] = useState('');
@@ -101,6 +118,13 @@ export default function Login() {
     setLoading(true);
     try {
       const isFemale = /sakshi|smita|vaishnavi|madhura|rajnandini|priya|pooja|snehal|patil|belwalkar|fatale|khot/i.test(fullName + ' ' + email);
+      
+      const selectedFacultyDept = FACULTY_DEPARTMENTS.find(d => d.id === facultyDeptId) || FACULTY_DEPARTMENTS[2];
+      const deptName = signupRole === 'faculty'
+        ? selectedFacultyDept.name
+        : (course.includes('BCA') ? 'Bachelor of Computer Applications' : course.includes('MCA') ? 'Master of Computer Applications' : course.includes('AIML') ? 'Artificial Intelligence & Machine Learning' : course.includes('DS') ? 'Data Science' : 'Computer Science & Engineering');
+      const deptId = signupRole === 'faculty' ? selectedFacultyDept.id : undefined;
+
       // register() ALWAYS succeeds locally — backend is optional
       await register({
         email: email.trim(),
@@ -109,10 +133,11 @@ export default function Login() {
         role: signupRole,
         gender: isFemale ? 'female' : 'male',
         avatar: isFemale ? '/avatar-girl.jpg' : '/avatar-boy.jpg',
-        course: signupRole === 'student' ? course : 'Faculty',
+        course: signupRole === 'student' ? course : (facultyDesignation || 'Faculty'),
         year_class: signupRole === 'student' ? yearClass : 'Staff',
-        roll_no: rollNo.trim() || '2026-REG',
-        department: course.includes('BCA') ? 'Bachelor of Computer Applications' : course.includes('MCA') ? 'Master of Computer Applications' : course.includes('AIML') ? 'Artificial Intelligence & Machine Learning' : course.includes('DS') ? 'Data Science' : 'Computer Science & Engineering',
+        roll_no: signupRole === 'student' ? (rollNo.trim() || '2026-REG') : (facultyEmpId.trim() || 'EMP-' + Math.floor(100 + Math.random() * 900)),
+        department: deptName,
+        department_id: deptId,
       });
       // Success — go to dashboard
       navigate('/');
@@ -417,6 +442,65 @@ export default function Login() {
                       onChange={(e) => setRollNo(e.target.value)}
                       placeholder="e.g. 24BCA102"
                       className="w-full px-3 py-3 rounded-xl border border-slate-200 bg-white text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#0f2d52] shadow-sm"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* FACULTY DEPARTMENT & DESIGNATION SELECTOR (Only for Faculty) */}
+            {signupRole === 'faculty' && (
+              <div className="space-y-3 p-3.5 rounded-2xl bg-amber-50/70 border border-amber-200 shadow-sm">
+                <div>
+                  <label className="block text-xs font-bold text-slate-800 mb-1 flex items-center gap-1.5">
+                    <span>🏢</span>
+                    <span>Choose Faculty Department <span className="text-red-500">*</span></span>
+                  </label>
+                  <select
+                    value={facultyDeptId}
+                    onChange={(e) => setFacultyDeptId(e.target.value)}
+                    className="w-full px-3.5 py-3 rounded-xl border border-amber-300 bg-white text-xs font-semibold text-slate-900 focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-200 shadow-sm"
+                  >
+                    {FACULTY_DEPARTMENTS.map((dept) => (
+                      <option key={dept.id} value={dept.id}>
+                        {dept.name}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-[10px] text-amber-800 font-medium mt-1">
+                    ℹ️ You will be assigned to handle tickets submitted to this department.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2.5">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      Designation
+                    </label>
+                    <select
+                      value={facultyDesignation}
+                      onChange={(e) => setFacultyDesignation(e.target.value)}
+                      className="w-full px-3 py-3 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-900 focus:outline-none focus:border-amber-500 shadow-sm"
+                    >
+                      <option value="Professor">Professor</option>
+                      <option value="Associate Professor">Associate Professor</option>
+                      <option value="Assistant Professor">Assistant Professor</option>
+                      <option value="HOD / Dept Head">HOD / Dept Head</option>
+                      <option value="Department Coordinator">Department Coordinator</option>
+                      <option value="Administrative Staff">Administrative Staff</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      Staff / Emp ID
+                    </label>
+                    <input
+                      type="text"
+                      value={facultyEmpId}
+                      onChange={(e) => setFacultyEmpId(e.target.value)}
+                      placeholder="e.g. EMP-104"
+                      className="w-full px-3 py-3 rounded-xl border border-slate-200 bg-white text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-amber-500 shadow-sm"
                     />
                   </div>
                 </div>
