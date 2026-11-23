@@ -213,6 +213,111 @@ PROFILES: List[Dict[str, Any]] = [
         "phone": "+91 9876543299",
         "avatar_url": "/avatar-girl.jpg",
         "gender": "female",
+        "course": "B.Tech CSE",
+        "year_class": "Final Year",
+        "is_active": True,
+        "created_at": datetime.now(timezone.utc)
+    },
+    # ✅ REAL PROJECT TEAM STUDENTS
+    {
+        "id": "user-sakshi-001",
+        "email": "sakshimb@dypsem.edu.in",
+        "password": "Sakshi@2527",
+        "full_name": "Sakshi Mahesh Belwalkar",
+        "role": "student",
+        "department_id": "11111111-1111-1111-1111-111111111111",
+        "roll_no": "3",
+        "phone": "+91 9876543201",
+        "avatar_url": "/avatar-girl.jpg",
+        "gender": "female",
+        "course": "B.Tech CSE",
+        "year_class": "T.Y. (3rd Year)",
+        "prn_no": "2023025005",
+        "is_active": True,
+        "created_at": datetime.now(timezone.utc)
+    },
+    {
+        "id": "user-sakshi-002",
+        "email": "sakshimb@dypsemedu.in",
+        "password": "Sakshi@2527",
+        "full_name": "Sakshi Mahesh Belwalkar",
+        "role": "student",
+        "department_id": "11111111-1111-1111-1111-111111111111",
+        "roll_no": "3",
+        "phone": "+91 9876543201",
+        "avatar_url": "/avatar-girl.jpg",
+        "gender": "female",
+        "course": "B.Tech CSE",
+        "year_class": "T.Y. (3rd Year)",
+        "prn_no": "2023025005",
+        "is_active": True,
+        "created_at": datetime.now(timezone.utc)
+    },
+    {
+        "id": "user-smita-001",
+        "email": "smitacf@dypsem.edu.in",
+        "password": "Smita@2527",
+        "full_name": "Smita Chandrakant Fatale",
+        "role": "student",
+        "department_id": "11111111-1111-1111-1111-111111111111",
+        "roll_no": "24",
+        "phone": "+91 9876543202",
+        "avatar_url": "/avatar-girl.jpg",
+        "gender": "female",
+        "course": "B.Tech CSE",
+        "year_class": "T.Y. (3rd Year)",
+        "prn_no": "2023025036",
+        "is_active": True,
+        "created_at": datetime.now(timezone.utc)
+    },
+    {
+        "id": "user-vaishnavi-001",
+        "email": "vaishnavink@dypsem.edu.in",
+        "password": "Vaishnavi@2527",
+        "full_name": "Vaishnavi Nandkumar Khot",
+        "role": "student",
+        "department_id": "11111111-1111-1111-1111-111111111111",
+        "roll_no": "37",
+        "phone": "+91 9876543203",
+        "avatar_url": "/avatar-girl.jpg",
+        "gender": "female",
+        "course": "B.Tech CSE",
+        "year_class": "T.Y. (3rd Year)",
+        "prn_no": "2023025076",
+        "is_active": True,
+        "created_at": datetime.now(timezone.utc)
+    },
+    {
+        "id": "user-madhurasp-001",
+        "email": "madhurasp@dypsem.edu.in",
+        "password": "Madhura@2527",
+        "full_name": "Madhura Santosh Patil",
+        "role": "student",
+        "department_id": "11111111-1111-1111-1111-111111111111",
+        "roll_no": "57",
+        "phone": "+91 9876543204",
+        "avatar_url": "/avatar-girl.jpg",
+        "gender": "female",
+        "course": "B.Tech CSE",
+        "year_class": "T.Y. (3rd Year)",
+        "prn_no": "2023025124",
+        "is_active": True,
+        "created_at": datetime.now(timezone.utc)
+    },
+    {
+        "id": "user-madhurasharad-001",
+        "email": "madhurasharad@dypsem.edu.in",
+        "password": "Madhura@2527",
+        "full_name": "Madhura Sharad Patil",
+        "role": "student",
+        "department_id": "11111111-1111-1111-1111-111111111111",
+        "roll_no": "58",
+        "phone": "+91 9876543205",
+        "avatar_url": "/avatar-girl.jpg",
+        "gender": "female",
+        "course": "B.Tech CSE",
+        "year_class": "T.Y. (3rd Year)",
+        "prn_no": "2023025125",
         "is_active": True,
         "created_at": datetime.now(timezone.utc)
     }
@@ -529,7 +634,11 @@ class Database:
 
     @staticmethod
     def get_profile_by_email(email: str) -> Optional[Dict[str, Any]]:
-        return next((u for u in PROFILES if u["email"].lower() == email.lower()), None)
+        if not email:
+            return None
+        clean = email.strip().lower()
+        norm = clean.replace("@dypsemedu.in", "@dypsem.edu.in")
+        return next((u for u in PROFILES if u["email"].lower() == clean or u["email"].lower() == norm), None)
 
     @staticmethod
     def create_profile(profile_data: Dict[str, Any]) -> Dict[str, Any]:
