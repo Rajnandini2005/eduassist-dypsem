@@ -32,6 +32,61 @@ init_supabase()
 
 DEPARTMENTS: List[Dict[str, Any]] = [
     {
+        "id": "dept-placement-001",
+        "code": "PLACE",
+        "name": "Placement Department",
+        "description": "Training and Placement Cell, campus recruitment drives, internships, and corporate tie-ups.",
+        "hod_name": "Prof. S. R. Kulkarni",
+        "email": "placement@dypsem.edu.in",
+        "phone": "+91 9876543220",
+        "location": "Placement Cell, Ground Floor",
+        "created_at": datetime.now(timezone.utc)
+    },
+    {
+        "id": "dept-scholarship-001",
+        "code": "SCHOL",
+        "name": "Scholarship Department",
+        "description": "Government MahaDBT, EBC, minority scholarships, freeships, and fee concessions.",
+        "hod_name": "Prof. Anil Deshmukh",
+        "email": "scholarship@dypsem.edu.in",
+        "phone": "+91 9876543221",
+        "location": "Admin Block, Room 102",
+        "created_at": datetime.now(timezone.utc)
+    },
+    {
+        "id": "dept-academic-001",
+        "code": "ACAD",
+        "name": "Academic Department",
+        "description": "Curriculum, lecture schedules, mentor allotments, attendance condonations, and academic support.",
+        "hod_name": "Dr. V. M. Chavan",
+        "email": "academic@dypsem.edu.in",
+        "phone": "+91 9876543222",
+        "location": "Academic Office, 1st Floor",
+        "created_at": datetime.now(timezone.utc)
+    },
+    {
+        "id": "dept-fee-001",
+        "code": "FEE",
+        "name": "Fee Department",
+        "description": "Tuition fees, hostel fees, installments, fine calculations, payment receipts, and clearances.",
+        "hod_name": "Mr. K. V. Raman",
+        "email": "accounts@dypsem.edu.in",
+        "phone": "+91 9876543223",
+        "location": "Admin Block, Ground Floor",
+        "created_at": datetime.now(timezone.utc)
+    },
+    {
+        "id": "dept-library-001",
+        "code": "LIB",
+        "name": "Library Department",
+        "description": "Book issues/returns, digital journals, IEEE/NPTEL resources, study halls, and library cards.",
+        "hod_name": "Mrs. A. S. Shinde",
+        "email": "library@dypsem.edu.in",
+        "phone": "+91 9876543224",
+        "location": "Central Library, 2nd Floor",
+        "created_at": datetime.now(timezone.utc)
+    },
+    {
         "id": "11111111-1111-1111-1111-111111111111",
         "code": "CSE",
         "name": "Computer Science & Engineering",

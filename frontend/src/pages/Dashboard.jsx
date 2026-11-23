@@ -16,14 +16,6 @@ import StatCard from '../components/StatCard';
 import { getAvatarUrl } from '../utils/avatar';
 
 // ─── Shared helpers ──────────────────────────────────────────
-const getPriorityColor = (p) => {
-  switch (p) {
-    case 'urgent': return 'text-rose-700 bg-rose-50 border-rose-200';
-    case 'high':   return 'text-amber-700 bg-amber-50 border-amber-200';
-    case 'medium': return 'text-blue-700 bg-blue-50 border-blue-200';
-    default:       return 'text-slate-600 bg-slate-50 border-slate-200';
-  }
-};
 const getStatusColor = (s) => {
   switch (s) {
     case 'open':        return 'bg-amber-50 text-amber-800 border-amber-200';

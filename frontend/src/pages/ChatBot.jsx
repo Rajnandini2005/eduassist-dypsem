@@ -1,5 +1,5 @@
 ﻿import React, { useState, useEffect, useRef } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { 
   Send, 
   Sparkles, 
@@ -12,14 +12,27 @@ import {
   BookOpen, 
   RotateCcw,
   Building2,
-  ExternalLink
+  ExternalLink,
+  TicketPlus
 } from 'lucide-react';
 import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import CitationDrawer from '../components/CitationDrawer';
+import TicketModal from '../components/TicketModal';
 
 // Local DYPSEM Knowledge Base — answers when backend is unavailable
 const LOCAL_KB = {
+  placement: {
+    keywords: ['placement', 'job', 'package', 'campus placement', 'drive', 'recruitment', 'tpo', 'internship', 'company', 'hiring'],
+    answer: `💼 **Training & Placement Cell at DYPSEM**
+
+• **Top Recruiters**: TCS, Infosys, Capgemini, Wipro, Tech Mahindra, Hexaware, Cognizant
+• **Eligibility**: Minimum 60% aggregate in 10th, 12th & Degree with 0 active backlogs
+• **Campus Drives**: Conducted in 7th & 8th Semester (Final Year)
+• **Internships**: Available from 6th semester onwards
+
+*(Source: DYPSEM Training & Placement Cell 2026)*`
+  },
   attendance: {
     keywords: ['attendance', 'absent', '75%', 'eligible', 'minimum attend', 'attend'],
     answer: `📋 **Minimum Attendance Requirement at DYPSEM**
@@ -205,8 +218,11 @@ export default function ChatBot() {
   const [selectedSources, setSelectedSources] = useState(null);
   const [isCitationDrawerOpen, setIsCitationDrawerOpen] = useState(false);
   const [copiedId, setCopiedId] = useState(null);
+  const [isTicketModalOpen, setIsTicketModalOpen] = useState(false);
+  const [ticketPrefill, setTicketPrefill] = useState({ title: '', deptId: '', desc: '' });
 
   const suggestedPrompts = [
+    "Is any campus placement drive in college?",
     "What is the minimum attendance requirement for semester exams?",
     "What are the hostel curfew timings on weekdays?",
     "How do I apply for re-evaluation and what is the fee?",
@@ -244,7 +260,7 @@ export default function ChatBot() {
     try {
       const res = await api.askChat(q.trim(), selectedDept || null);
       const botMsg = {
-        id: res.query_id,
+        id: res.query_id || Date.now().toString(),
         sender: 'bot',
         text: res.answer,
         sources: res.sources || [],
@@ -252,6 +268,7 @@ export default function ChatBot() {
         is_answered: res.is_answered,
         unanswered_reason: res.unanswered_reason,
         response_time_ms: res.response_time_ms,
+        relatedQuestion: q.trim(),
         timestamp: new Date(),
         feedback: null
       };
@@ -269,12 +286,54 @@ export default function ChatBot() {
           confidence: 0.8,
           is_answered: true,
           isOffline: true,
+          relatedQuestion: q.trim(),
           timestamp: new Date()
         }
       ]);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleOpenTicketModal = (questionText) => {
+    const q = (questionText || '').trim();
+    const qLower = q.toLowerCase();
+    let deptId = '';
+    if (qLower.includes('placement') || qLower.includes('job') || qLower.includes('tpo') || qLower.includes('recruit') || qLower.includes('drive')) {
+      deptId = 'dept-placement-001';
+    } else if (qLower.includes('scholarship') || qLower.includes('mahadbt') || qLower.includes('ebc') || qLower.includes('freeship')) {
+      deptId = 'dept-scholarship-001';
+    } else if (qLower.includes('fee') || qLower.includes('payment') || qLower.includes('challan') || qLower.includes('fine') || qLower.includes('due')) {
+      deptId = 'dept-fee-001';
+    } else if (qLower.includes('library') || qLower.includes('book') || qLower.includes('journal')) {
+      deptId = 'dept-library-001';
+    } else if (qLower.includes('exam') || qLower.includes('reval') || qLower.includes('grade') || qLower.includes('marksheet')) {
+      deptId = '77777777-7777-7777-7777-777777777777';
+    } else {
+      deptId = 'dept-academic-001';
+    }
+
+    setTicketPrefill({
+      title: q,
+      deptId: deptId,
+      desc: `Inquiry regarding: ${q}\n(Submitted via Ask AI Assistant for official department follow-up)`
+    });
+    setIsTicketModalOpen(true);
+  };
+
+  const handleTicketCreated = (newTicket) => {
+    setIsTicketModalOpen(false);
+    setMessages(prev => [
+      ...prev,
+      {
+        id: 'ticket-created-' + Date.now(),
+        sender: 'bot',
+        text: `✅ **Support Ticket Created Successfully!**\n\n• **Ticket ID**: ${newTicket?.ticket_number || 'TKT-10023'}\n• **Question / Subject**: ${newTicket?.title || ticketPrefill.title}\n• **Target Department**: ${newTicket?.department_name || 'Department Desk'}\n• **Status**: Open\n\nYour question has been routed directly to the department desk. You can track progress and official remarks in the **Tickets** section.`,
+        sources: [],
+        confidence: 1.0,
+        timestamp: new Date()
+      }
+    ]);
   };
 
   const handleFeedback = async (queryId, type) => {
@@ -427,6 +486,19 @@ export default function ChatBot() {
                     </div>
                   </div>
                 )}
+
+                {/* Direct Support Ticket Creation from Chat */}
+                {isBot && (
+                  <div className="pt-1.5 flex items-center">
+                    <button
+                      onClick={() => handleOpenTicketModal(msg.relatedQuestion || 'Campus Inquiry')}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-amber-500 hover:bg-amber-600 active:scale-95 text-white shadow-sm transition-all"
+                    >
+                      <TicketPlus className="w-3.5 h-3.5" />
+                      <span>Create Support Ticket</span>
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           );
@@ -502,6 +574,16 @@ export default function ChatBot() {
         isOpen={isCitationDrawerOpen}
         onClose={() => setIsCitationDrawerOpen(false)}
         sources={selectedSources}
+      />
+
+      {/* Direct Ticket Creation Modal from Chat */}
+      <TicketModal
+        isOpen={isTicketModalOpen}
+        onClose={() => setIsTicketModalOpen(false)}
+        onCreated={handleTicketCreated}
+        initialTitle={ticketPrefill.title}
+        initialDepartmentId={ticketPrefill.deptId}
+        initialDescription={ticketPrefill.desc}
       />
 
     </div>

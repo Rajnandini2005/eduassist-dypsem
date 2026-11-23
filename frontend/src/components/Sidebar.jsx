@@ -37,7 +37,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
       return [
         { name: 'Dashboard', path: '/', icon: LayoutDashboard },
         { name: 'Ask AI Assistant', path: '/chat', icon: Bot, highlight: true },
-        { name: 'My Grievances', path: '/tickets', icon: TicketCheck },
+        { name: 'My Support Tickets', path: '/tickets', icon: TicketCheck },
         { name: 'Handbooks & Docs', path: '/documents', icon: FileText },
         { name: 'Departments & FAQs', path: '/departments', icon: Building2 },
         { name: 'Campus Circulars', path: '/notices', icon: Bell },
@@ -46,7 +46,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
       return [
         { name: 'Faculty Workspace', path: '/', icon: Briefcase },
         { name: 'AI Staff Assistant', path: '/chat', icon: Bot, highlight: true },
-        { name: 'Assigned Grievances', path: '/tickets', icon: ClipboardList },
+        { name: 'Assigned Tickets', path: '/tickets', icon: ClipboardList },
         { name: 'Course Handbooks', path: '/documents', icon: BookOpen },
         { name: 'Department FAQs', path: '/departments', icon: Building2 },
         { name: 'Class Circulars', path: '/notices', icon: Bell },

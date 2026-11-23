@@ -41,7 +41,6 @@ export default function Login() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [signupRole, setSignupRole] = useState('student'); // student | faculty
-  const [avatarChoice, setAvatarChoice] = useState('girl'); // 'boy' | 'girl'
   const [course, setCourse] = useState('B.Tech CSE');
   const [yearClass, setYearClass] = useState('F.Y. (1st Year)');
   const [rollNo, setRollNo] = useState('');
@@ -101,14 +100,15 @@ export default function Login() {
 
     setLoading(true);
     try {
+      const isFemale = /sakshi|smita|vaishnavi|madhura|rajnandini|priya|pooja|snehal|patil|belwalkar|fatale|khot/i.test(fullName + ' ' + email);
       // register() ALWAYS succeeds locally — backend is optional
       await register({
         email: email.trim(),
         password,
         full_name: fullName.trim(),
         role: signupRole,
-        gender: avatarChoice === 'girl' ? 'female' : 'male',
-        avatar: avatarChoice === 'girl' ? '/avatar-girl.jpg' : '/avatar-boy.jpg',
+        gender: isFemale ? 'female' : 'male',
+        avatar: isFemale ? '/avatar-girl.jpg' : '/avatar-boy.jpg',
         course: signupRole === 'student' ? course : 'Faculty',
         year_class: signupRole === 'student' ? yearClass : 'Staff',
         roll_no: rollNo.trim() || '2026-REG',
@@ -349,53 +349,6 @@ export default function Login() {
               <p className="text-[10px] text-slate-400 mt-1.5 text-center">
                 Selected: <span className="font-bold text-slate-600">{signupRole === 'student' ? '🎓 Student' : '🏫 Faculty'}</span>
               </p>
-            </div>
-
-            {/* AVATAR / GENDER SELECTOR */}
-            <div>
-              <label className="block text-xs font-bold text-slate-600 mb-2">
-                Select Profile Avatar <span className="text-red-500">*</span>
-              </label>
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  type="button"
-                  onClick={() => setAvatarChoice('boy')}
-                  className={`flex items-center gap-3 p-3 rounded-2xl border-2 transition-all ${
-                    avatarChoice === 'boy'
-                      ? 'bg-blue-50 border-blue-600 shadow-md ring-2 ring-blue-300'
-                      : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
-                  }`}
-                >
-                  <img
-                    src="/avatar-boy.jpg"
-                    alt="Boy Avatar"
-                    className="w-12 h-12 rounded-xl object-cover ring-2 ring-blue-500 shadow-sm"
-                  />
-                  <div className="text-left">
-                    <p className="text-xs font-black text-slate-900">👦 Boy</p>
-                    <p className="text-[10px] text-slate-500">Male Profile</p>
-                  </div>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setAvatarChoice('girl')}
-                  className={`flex items-center gap-3 p-3 rounded-2xl border-2 transition-all ${
-                    avatarChoice === 'girl'
-                      ? 'bg-purple-50 border-purple-600 shadow-md ring-2 ring-purple-300'
-                      : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
-                  }`}
-                >
-                  <img
-                    src="/avatar-girl.jpg"
-                    alt="Girl Avatar"
-                    className="w-12 h-12 rounded-xl object-cover ring-2 ring-purple-500 shadow-sm"
-                  />
-                  <div className="text-left">
-                    <p className="text-xs font-black text-slate-900">👧 Girl</p>
-                    <p className="text-[10px] text-slate-500">Female Profile</p>
-                  </div>
-                </button>
-              </div>
             </div>
 
             {/* Full Name */}

@@ -4,14 +4,17 @@ import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
 const FALLBACK_DEPARTMENTS = [
-  { id: '1', code: 'CSE', name: 'Computer Science & Engineering' },
-  { id: '2', code: 'AIML', name: 'Artificial Intelligence & Machine Learning' },
-  { id: '3', code: 'DS', name: 'Data Science' },
-  { id: '4', code: 'BCA', name: 'Bachelor of Computer Applications' },
-  { id: '5', code: 'MCA', name: 'Master of Computer Applications' },
-  { id: '6', code: 'ADM', name: 'Admissions & Scholarships' },
-  { id: '7', code: 'EXAM', name: 'Examination Cell' },
-  { id: '8', code: 'ACC', name: 'Accounts & Finance' },
+  { id: 'dept-placement-001', code: 'PLACE', name: 'Placement Department (Placement Dept)' },
+  { id: 'dept-scholarship-001', code: 'SCHOL', name: 'Scholarship Department (Scholarship Dept)' },
+  { id: 'dept-academic-001', code: 'ACAD', name: 'Academic Department (Academic Dept)' },
+  { id: 'dept-fee-001', code: 'FEE', name: 'Fee Department (Accounts & Fee Dept)' },
+  { id: 'dept-library-001', code: 'LIB', name: 'Library Department (Library Dept)' },
+  { id: '11111111-1111-1111-1111-111111111111', code: 'CSE', name: 'Computer Science & Engineering (CSE Dept)' },
+  { id: '22222222-2222-2222-2222-222222222222', code: 'AIML', name: 'Artificial Intelligence & Machine Learning' },
+  { id: '33333333-3333-3333-3333-333333333333', code: 'DS', name: 'Data Science' },
+  { id: '44444444-4444-4444-4444-444444444444', code: 'BCA', name: 'Bachelor of Computer Applications' },
+  { id: '55555555-5555-5555-5555-555555555555', code: 'MCA', name: 'Master of Computer Applications' },
+  { id: '77777777-7777-7777-7777-777777777777', code: 'EXAM', name: 'Examination Cell (Exam Dept)' },
 ];
 
 function saveLocalTicket(ticket) {
@@ -20,14 +23,20 @@ function saveLocalTicket(ticket) {
   localStorage.setItem('local_tickets', JSON.stringify(existing));
 }
 
-export default function TicketModal({ isOpen, onClose, onCreated }) {
+export default function TicketModal({ 
+  isOpen, 
+  onClose, 
+  onCreated,
+  initialTitle = '',
+  initialDepartmentId = '',
+  initialDescription = ''
+}) {
   const { user } = useAuth();
   const fileInputRef = useRef(null);
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('Academics');
-  const [priority, setPriority] = useState('medium');
   const [departmentId, setDepartmentId] = useState('');
   const [departments, setDepartments] = useState(FALLBACK_DEPARTMENTS);
   const [attachedFile, setAttachedFile] = useState(null);
@@ -38,16 +47,21 @@ export default function TicketModal({ isOpen, onClose, onCreated }) {
 
   useEffect(() => {
     if (isOpen) {
-      // Reset form
-      setTitle(''); setDescription(''); setCategory('Academics');
-      setPriority('medium'); setDepartmentId(''); setAttachedFile(null);
-      setError(''); setSuccess(false); setIsOffline(false);
+      // Reset or initialize form with prefilled values
+      setTitle(initialTitle || '');
+      setDescription(initialDescription || '');
+      setCategory('Academics');
+      setDepartmentId(initialDepartmentId || '');
+      setAttachedFile(null);
+      setError('');
+      setSuccess(false);
+      setIsOffline(false);
 
       api.getDepartments()
         .then(d => { if (d && d.length > 0) setDepartments(d); })
         .catch(() => setDepartments(FALLBACK_DEPARTMENTS));
     }
-  }, [isOpen]);
+  }, [isOpen, initialTitle, initialDepartmentId, initialDescription]);
 
   if (!isOpen) return null;
 
@@ -159,7 +173,7 @@ export default function TicketModal({ isOpen, onClose, onCreated }) {
         <div className="flex items-center justify-between p-5 border-b border-slate-200 bg-slate-50/70">
           <div>
             <h3 className="text-base font-bold text-slate-900">Create Support Ticket</h3>
-            <p className="text-xs text-slate-500 mt-0.5">Submit an academic inquiry or administrative grievance</p>
+            <p className="text-xs text-slate-500 mt-0.5">Submit an academic inquiry or administrative support request</p>
           </div>
           <button 
             onClick={onClose}
@@ -178,69 +192,58 @@ export default function TicketModal({ isOpen, onClose, onCreated }) {
             </div>
           )}
 
-          {/* Title */}
+          {/* Title / Question */}
           <div>
             <label className="block text-xs font-bold text-slate-700 mb-1.5">
-              Subject / Issue Title *
+              Ticket Subject / Question <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="e.g. Discrepancy in Semester 4 Machine Learning Grade Card"
-              className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-xs text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600"
+              placeholder="e.g. Is any campus placement drive in college?"
+              className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-xs text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 font-medium"
               required
             />
           </div>
 
-          {/* Category + Priority */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1.5">Category</label>
-              <select
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-xs text-slate-900 focus:bg-white focus:outline-none focus:border-blue-600"
-              >
-                <option value="Academics">Academics & Attendance</option>
-                <option value="Examinations">Examinations & Grade Cards</option>
-                <option value="Fees">Tuition & Hostel Fees</option>
-                <option value="Hostel">Hostel & Mess Regulations</option>
-                <option value="Certificates">Bonafide & Certificates</option>
-                <option value="Technical">Campus IT & Wi-Fi</option>
-                <option value="General">Other / General</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1.5">Priority Level</label>
-              <select
-                value={priority}
-                onChange={(e) => setPriority(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-xs text-slate-900 focus:bg-white focus:outline-none focus:border-blue-600"
-              >
-                <option value="low">Low (General Query)</option>
-                <option value="medium">Medium (Standard Request)</option>
-                <option value="high">High (Urgent Attention)</option>
-                <option value="urgent">Urgent (Deadline Critical)</option>
-              </select>
-            </div>
-          </div>
-
-          {/* Department */}
+          {/* Department (Required Specific Department) */}
           <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1.5">Target Department (Optional)</label>
+            <label className="block text-xs font-bold text-slate-700 mb-1.5">
+              Target Department <span className="text-red-500">*</span>
+            </label>
             <select
               value={departmentId}
               onChange={(e) => setDepartmentId(e.target.value)}
-              className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-xs text-slate-900 focus:bg-white focus:outline-none focus:border-blue-600"
+              className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-xs text-slate-900 font-medium focus:bg-white focus:outline-none focus:border-blue-600"
+              required
             >
-              <option value="">-- General Campus Helpdesk --</option>
+              <option value="">-- Select Specific Department --</option>
               {departments.map((d) => (
                 <option key={d.id} value={d.id}>
-                  {d.name} ({d.code})
+                  {d.name}
                 </option>
               ))}
+            </select>
+            <p className="text-[11px] text-slate-400 mt-1">Ticket will be submitted directly to this department and admin only.</p>
+          </div>
+
+          {/* Category */}
+          <div>
+            <label className="block text-xs font-bold text-slate-700 mb-1.5">Category</label>
+            <select
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+              className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-xs text-slate-900 focus:bg-white focus:outline-none focus:border-blue-600"
+            >
+              <option value="Placement">Campus Placement & Training</option>
+              <option value="Scholarship">Scholarship & MahaDBT</option>
+              <option value="Academics">Academics & Attendance</option>
+              <option value="Fees">Tuition & Hostel Fees</option>
+              <option value="Library">Library & Reading Hall</option>
+              <option value="Examinations">Examinations & Grade Cards</option>
+              <option value="Certificates">Bonafide & Document Verification</option>
+              <option value="General">Other / General Support</option>
             </select>
           </div>
 

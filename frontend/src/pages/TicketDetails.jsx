@@ -158,8 +158,8 @@ export default function TicketDetails() {
         <div className="p-4 rounded-2xl bg-blue-50/80 border border-blue-200 flex items-center justify-between text-xs text-blue-950">
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-blue-600 animate-pulse" />
-            <span className="font-bold">Student Grievance Tracking View</span>
-            <span className="text-blue-600">• You can view progress, reply to staff queries, and close when satisfied.</span>
+            <span className="font-bold">Student Ticket Tracking View</span>
+            <span className="text-blue-600">• You can view progress, department remarks, and close when satisfied.</span>
           </div>
           <span className="text-[11px] font-mono font-bold text-blue-800 bg-white px-2 py-0.5 rounded border border-blue-200">
             Student: {user?.full_name}
@@ -169,8 +169,8 @@ export default function TicketDetails() {
         <div className="p-4 rounded-2xl bg-amber-50/80 border border-amber-200 flex items-center justify-between text-xs text-amber-950">
           <div className="flex items-center gap-2">
             <UserCheck className="w-4 h-4 text-amber-700" />
-            <span className="font-bold">Faculty Grievance Desk • Computer Science & Eng.</span>
-            <span className="text-amber-800">• You have authorization to post internal notes, adjust status, and submit official resolutions.</span>
+            <span className="font-bold">Faculty Department Desk • {user?.department || 'Assigned Department'}</span>
+            <span className="text-amber-800">• You have authorization to post remarks, adjust status, and submit official resolutions.</span>
           </div>
           <span className="text-[11px] font-mono font-bold text-amber-800 bg-white px-2 py-0.5 rounded border border-amber-200">
             Faculty: {user?.full_name}
@@ -180,7 +180,7 @@ export default function TicketDetails() {
         <div className="p-4 rounded-2xl bg-slate-900 text-white flex items-center justify-between text-xs">
           <div className="flex items-center gap-2">
             <ShieldAlert className="w-4 h-4 text-amber-400" />
-            <span className="font-bold">Central Registrar Operations • Full Administrative Override</span>
+            <span className="font-bold">Central University Operations • Full Administrative Oversight</span>
           </div>
           <span className="text-[11px] font-mono font-bold text-amber-300 bg-slate-800 px-2 py-0.5 rounded border border-slate-700">
             Administrator: {user?.full_name}
@@ -200,15 +200,7 @@ export default function TicketDetails() {
               </span>
               <span className="text-xs text-slate-500">Category: <strong className="text-slate-800">{ticket.category}</strong></span>
               <span className="text-xs text-slate-300">•</span>
-              <span className="text-xs text-slate-500">Dept: <strong className="text-slate-800">{ticket.department_name}</strong></span>
-              <span className="text-xs text-slate-300">•</span>
-              <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase ${
-                ticket.priority === 'urgent' ? 'bg-rose-50 text-rose-700 border border-rose-200' :
-                ticket.priority === 'high' ? 'bg-amber-50 text-amber-700 border border-amber-200' :
-                'bg-slate-100 text-slate-700'
-              }`}>
-                {ticket.priority} Priority
-              </span>
+              <span className="text-xs text-slate-500">Department: <strong className="text-slate-800">{ticket.department_name}</strong></span>
             </div>
 
             <h1 className="text-lg md:text-xl font-extrabold text-slate-900 mt-2">{ticket.title}</h1>
@@ -340,7 +332,7 @@ export default function TicketDetails() {
             {role === 'student' && ticket.status === 'resolved' && (
               <div className="pt-2 border-t border-emerald-200 flex items-center justify-between">
                 <p className="text-[11px] text-emerald-800">
-                  Are you satisfied with this resolution? You can officially close this grievance:
+                  Are you satisfied with this resolution? You can officially close this ticket:
                 </p>
                 <div className="flex items-center gap-2">
                   <button

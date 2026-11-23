@@ -32,7 +32,7 @@ export default function BottomNav() {
       return [
         { name: 'Workspace', path: '/', icon: LayoutDashboard },
         { name: 'AI Chat', path: '/chat', icon: Bot, highlight: true },
-        { name: 'Grievances', path: '/tickets', icon: TicketCheck },
+        { name: 'Tickets', path: '/tickets', icon: TicketCheck },
         { name: 'Notices', path: '/notices', icon: Bell },
         { name: 'Profile', path: '/profile', icon: User },
       ];

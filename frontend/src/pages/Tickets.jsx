@@ -37,10 +37,9 @@ export default function Tickets() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
-  const [priorityFilter, setPriorityFilter] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
   const [deptFilter, setDeptFilter] = useState('');
-  const [facultyTab, setFacultyTab] = useState('assigned_to_me'); // 'assigned_to_me', 'my_department', 'all'
+  const [facultyTab, setFacultyTab] = useState('my_department'); // 'my_department', 'assigned_to_me', 'all'
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const fetchTickets = async () => {
@@ -51,7 +50,6 @@ export default function Tickets() {
       const [ticketsData, deptsData] = await Promise.all([
         api.getTickets({
           status: statusFilter,
-          priority: priorityFilter,
           category: categoryFilter,
           department_id: deptFilter || undefined
         }),
@@ -81,7 +79,7 @@ export default function Tickets() {
       window.removeEventListener('eduassist_ticket_created', handleCreated);
       window.removeEventListener('storage', handleCreated);
     };
-  }, [statusFilter, priorityFilter, categoryFilter, deptFilter, user]);
+  }, [statusFilter, categoryFilter, deptFilter, user]);
 
   // Apply Role Filtering
   const myEmail = (user?.email || '').toLowerCase().trim();
@@ -103,11 +101,17 @@ export default function Tickets() {
       );
     }
     if (role === 'faculty') {
+      const userDept = user?.department_id || user?.department || '';
+      const ticketDept = (t.department_id || '') + ' ' + (t.department_name || '');
       if (facultyTab === 'assigned_to_me') {
-        return t.assigned_to === user?.id || !t.assigned_to;
+        return t.assigned_to === user?.id;
       }
       if (facultyTab === 'my_department') {
-        return t.department_id === user?.department_id || !user?.department_id;
+        // Specific department only
+        if (!userDept) return true;
+        return t.department_id === userDept ||
+               ticketDept.toLowerCase().includes(userDept.toLowerCase()) ||
+               userDept.toLowerCase().includes((t.department_name || '').toLowerCase());
       }
       return true; // all campus tickets
     }
@@ -124,15 +128,6 @@ export default function Tickets() {
       (t.student_name && t.student_name.toLowerCase().includes(q))
     );
   });
-
-  const getPriorityBadge = (p) => {
-    switch (p) {
-      case 'urgent': return 'text-rose-700 bg-rose-50 border-rose-200';
-      case 'high': return 'text-amber-700 bg-amber-50 border-amber-200';
-      case 'medium': return 'text-blue-700 bg-blue-50 border-blue-200';
-      default: return 'text-slate-600 bg-slate-100 border-slate-200';
-    }
-  };
 
   const getStatusBadge = (s) => {
     switch (s) {
@@ -153,16 +148,16 @@ export default function Tickets() {
           <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
             <TicketCheck className="w-5 h-5 text-blue-700" />
             {role === 'student' 
-              ? 'My Grievances & Service Requests'
+              ? 'My Support Tickets & Requests'
               : role === 'faculty'
-              ? 'Faculty Grievance Resolution Desk'
+              ? 'Faculty Ticket Resolution Desk'
               : 'Central University Ticket Operations'}
           </h2>
           <p className="text-xs text-slate-500 mt-0.5">
             {role === 'student' 
-              ? `Logged in as ${user?.full_name} (Roll: 22CS0104) • Track responses and resolution notes`
+              ? `Logged in as ${user?.full_name} • Track responses, department remarks, and resolution notes`
               : role === 'faculty'
-              ? 'Review assigned student grievances, submit official remarks, or escalate to admin'
+              ? 'Review assigned department tickets, submit official remarks, or resolve issues'
               : 'University-wide ticketing console with departmental routing and coordinator assignments'}
           </p>
         </div>
@@ -173,23 +168,13 @@ export default function Tickets() {
           className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-900 hover:bg-blue-800 text-white text-xs font-semibold shadow-md shadow-blue-900/20 transition-all self-start sm:self-auto"
         >
           <Plus className="w-4 h-4" />
-          <span>{role === 'student' ? '+ Raise Grievance' : '+ Create Ticket'}</span>
+          <span>{role === 'student' ? '+ Raise Support Ticket' : '+ Create Ticket'}</span>
         </button>
       </div>
 
       {/* Faculty Work Tabs */}
       {role === 'faculty' && (
         <div className="flex items-center gap-2 p-1 bg-slate-100 rounded-2xl w-fit">
-          <button
-            onClick={() => setFacultyTab('assigned_to_me')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
-              facultyTab === 'assigned_to_me'
-                ? 'bg-white text-blue-950 shadow-sm'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            Assigned to Me ({tickets.filter(t => t.assigned_to === user?.id || !t.assigned_to).length})
-          </button>
           <button
             onClick={() => setFacultyTab('my_department')}
             className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
@@ -198,7 +183,20 @@ export default function Tickets() {
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
-            CSE Department ({tickets.filter(t => t.department_id === user?.department_id || !user?.department_id).length})
+            My Department Tickets ({tickets.filter(t => {
+              const uDept = user?.department_id || user?.department || '';
+              return !uDept || t.department_id === uDept || (t.department_name && t.department_name.toLowerCase().includes(uDept.toLowerCase()));
+            }).length})
+          </button>
+          <button
+            onClick={() => setFacultyTab('assigned_to_me')}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+              facultyTab === 'assigned_to_me'
+                ? 'bg-white text-blue-950 shadow-sm'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            Assigned to Me ({tickets.filter(t => t.assigned_to === user?.id).length})
           </button>
           <button
             onClick={() => setFacultyTab('all')}
@@ -240,31 +238,21 @@ export default function Tickets() {
           </select>
 
           <select
-            value={priorityFilter}
-            onChange={(e) => setPriorityFilter(e.target.value)}
-            className="px-3 py-2 rounded-xl bg-slate-50 border border-slate-300 text-xs text-slate-800 font-semibold focus:bg-white focus:outline-none focus:border-blue-600"
-          >
-            <option value="">All Priorities</option>
-            <option value="low">Low</option>
-            <option value="medium">Medium</option>
-            <option value="high">High</option>
-            <option value="urgent">Urgent</option>
-          </select>
-
-          <select
             value={categoryFilter}
             onChange={(e) => setCategoryFilter(e.target.value)}
             className="px-3 py-2 rounded-xl bg-slate-50 border border-slate-300 text-xs text-slate-800 font-semibold focus:bg-white focus:outline-none focus:border-blue-600"
           >
             <option value="">All Categories</option>
+            <option value="Placement">Placement</option>
+            <option value="Scholarship">Scholarship</option>
             <option value="Academics">Academics</option>
-            <option value="Examinations">Examinations</option>
             <option value="Fees">Fees & Accounts</option>
-            <option value="Hostel">Hostel</option>
+            <option value="Library">Library</option>
+            <option value="Examinations">Examinations</option>
             <option value="Certificates">Certificates</option>
           </select>
 
-          {role === 'admin' && (
+          {(role === 'admin' || role === 'faculty') && (
             <select
               value={deptFilter}
               onChange={(e) => setDeptFilter(e.target.value)}
@@ -295,8 +283,8 @@ export default function Tickets() {
                   <span className="font-mono text-xs px-2.5 py-0.5 rounded-lg bg-blue-50 text-blue-900 border border-blue-200 font-bold">
                     {ticket.ticket_number}
                   </span>
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border uppercase ${getPriorityBadge(ticket.priority)}`}>
-                    {ticket.priority}
+                  <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200">
+                    🏛️ {ticket.department_name || 'General Helpdesk'}
                   </span>
                   <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border capitalize ${getStatusBadge(ticket.status)}`}>
                     {ticket.status.replace('_', ' ')}
