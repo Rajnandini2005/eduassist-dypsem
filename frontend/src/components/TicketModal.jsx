@@ -37,6 +37,7 @@ export default function TicketModal({
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('Academics');
+  const priority = 'medium'; // UI priority removed per user request
   const [departmentId, setDepartmentId] = useState('');
   const [departments, setDepartments] = useState(FALLBACK_DEPARTMENTS);
   const [attachedFile, setAttachedFile] = useState(null);

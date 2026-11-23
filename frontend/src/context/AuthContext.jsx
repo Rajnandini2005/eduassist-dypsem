@@ -347,10 +347,9 @@ function saveLocalUser(user) {
 }
 
 function findLocalUser(email, password) {
-  const users = getLocalUsers();
   const clean = (email || '').trim().toLowerCase();
   const norm = clean.replace('@dypsemedu.in', '@dypsem.edu.in');
-  return users.find(u => {
+  const userMatches = (u) => {
     const uClean = u.email.toLowerCase();
     const uNorm = uClean.replace('@dypsemedu.in', '@dypsem.edu.in');
     const emailMatches = uClean === clean || uNorm === norm || uClean === norm || uNorm === clean;
@@ -358,18 +357,31 @@ function findLocalUser(email, password) {
     return u.password === password ||
            u.password.toLowerCase() === (password || '').toLowerCase() ||
            ['sakshi@2527', 'smita@2527', 'vaishnavi@2527', 'madhura@2527', 'password123', 'eduassist@2025#dyp'].includes((password || '').toLowerCase());
-  }) || null;
+  };
+
+  // 1. Check pre-seeded DYPSEM users first (guaranteed access)
+  const seedMatch = SEED_USERS.find(userMatches);
+  if (seedMatch) return seedMatch;
+
+  // 2. Check locally saved users
+  const users = getLocalUsers();
+  return users.find(userMatches) || null;
 }
 
 function findLocalUserByEmail(email) {
-  const users = getLocalUsers();
   const clean = (email || '').trim().toLowerCase();
   const norm = clean.replace('@dypsemedu.in', '@dypsem.edu.in');
-  return users.find(u => {
+  const userMatches = (u) => {
     const uClean = u.email.toLowerCase();
     const uNorm = uClean.replace('@dypsemedu.in', '@dypsem.edu.in');
     return uClean === clean || uNorm === norm || uClean === norm || uNorm === clean;
-  }) || null;
+  };
+
+  const seedMatch = SEED_USERS.find(userMatches);
+  if (seedMatch) return seedMatch;
+
+  const users = getLocalUsers();
+  return users.find(userMatches) || null;
 }
 
 function makeLocalToken(user) {
