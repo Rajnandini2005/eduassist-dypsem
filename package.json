@@ -1,0 +1,11 @@
+{
+  "name": "eduassist-dypsem-root",
+  "version": "1.0.0",
+  "description": "EduAssist DYPSEM - AI Helpdesk and Academic Support System",
+  "scripts": {
+    "dev": "npm --prefix frontend run dev",
+    "start": "npm --prefix frontend run dev",
+    "build": "npm --prefix frontend run build",
+    "setup": "npm --prefix frontend install"
+  }
+}
