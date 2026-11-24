@@ -3,6 +3,14 @@ from typing import List, Dict, Any, Optional
 from app.core.database import Database, supabase_client
 from app.rag.embeddings import get_embedding, cosine_similarity
 
+STOP_WORDS = {
+    "when", "what", "where", "which", "who", "whom", "whose", "why", "how",
+    "the", "and", "for", "with", "from", "that", "this", "these", "those",
+    "is", "are", "was", "were", "been", "being", "have", "has", "had",
+    "can", "could", "will", "would", "should", "shall", "may", "might",
+    "conducted", "held", "done", "give", "tell", "show", "please", "about", "any"
+}
+
 def retrieve_relevant_chunks(
     query: str,
     top_k: int = 4,
@@ -15,7 +23,9 @@ def retrieve_relevant_chunks(
     """
     query_emb = get_embedding(query)
     clean_query = re.sub(r'[^\w\s]', ' ', query.lower())
-    query_terms = set(w for w in clean_query.split() if len(w) > 2)
+    query_terms = set(w for w in clean_query.split() if len(w) > 2 and w not in STOP_WORDS)
+    if not query_terms:
+        query_terms = set(w for w in clean_query.split() if len(w) > 2)
 
     # Try live Supabase RPC first if client is active
     if supabase_client:

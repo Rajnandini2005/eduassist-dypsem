@@ -434,10 +434,32 @@ DOCUMENTS: List[Dict[str, Any]] = [
         "chunk_count": 1,
         "summary": "Procedure for end-semester re-evaluation (Rs 1,000 fee), photocopy of answer booklet (Rs 400), supplementary exam registration, and hall conduct.",
         "created_at": datetime.now(timezone.utc)
+    },
+    {
+        "id": "d5555555-5555-5555-5555-555555555555",
+        "title": "B.Tech & MCA Technical Project Presentation & Seminar Guidelines 2026",
+        "filename": "Technical_Project_Guidelines_2026.pdf",
+        "file_type": "pdf",
+        "file_size": 1150000,
+        "storage_path": "uploads/Technical_Project_Guidelines_2026.pdf",
+        "department_id": "11111111-1111-1111-1111-111111111111",
+        "uploaded_by": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+        "status": "indexed",
+        "chunk_count": 1,
+        "summary": "Official schedule, review phases, viva-voce dates, synopsis approval, and IEEE format requirements for Final Year Technical Project Presentations.",
+        "created_at": datetime.now(timezone.utc)
     }
 ]
 
 DOCUMENT_CHUNKS: List[Dict[str, Any]] = [
+    {
+        "id": "c5555555-0001-0000-0000-000000000001",
+        "document_id": "d5555555-5555-5555-5555-555555555555",
+        "chunk_index": 1,
+        "page_number": 1,
+        "content": "TECHNICAL PROJECT PRESENTATION & SEMINAR GUIDELINES 2026\n1. Presentation Schedule: Technical Project Review 1 is conducted in the 3rd week of September / 1st week of October (Odd Semester). Technical Project Review 2 and Final Demonstration Viva-Voce are conducted in the 1st and 2nd week of April (Even Semester) alongside University End-Semester Practical Examinations.\n2. Synopsis Approval: All project batches must submit synopsis along with guide preference by August 25 to the Department Project Committee.\n3. Evaluation Rubric: Total 100 marks (Internal Guide: 40 marks, Department Review Panel: 30 marks, External Viva-Voce: 30 marks).\n4. Plagiarism Limit: IEEE format required, Turnitin similarity must be strictly below 15%.",
+        "metadata": {"section": "1.1", "source": "Technical_Project_Guidelines_2026.pdf", "page": 1}
+    },
     {
         "id": "c1111111-0001-0000-0000-000000000001",
         "document_id": "d1111111-1111-1111-1111-111111111111",

@@ -96,7 +96,11 @@ export default function NoticeEditModal({ isOpen, onClose, noticeToEdit, onSaved
       // If a real file was selected, upload as document for backend RAG indexing
       if (attachedFile && attachedFile instanceof File) {
         try {
-          await api.uploadDocument(attachedFile, departmentId || null);
+          const formData = new FormData();
+          formData.append("file", attachedFile);
+          formData.append("title", title.trim());
+          if (departmentId) formData.append("department_id", departmentId);
+          await api.uploadDocument(formData);
         } catch (uploadErr) {
           console.warn("Notice attachment upload warning:", uploadErr);
         }

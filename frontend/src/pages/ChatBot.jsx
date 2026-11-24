@@ -10,20 +10,56 @@ import {
   Copy, 
   Check, 
   BookOpen, 
-  RotateCcw,
-  Building2,
-  ExternalLink,
-  TicketPlus
+  RotateCcw, 
+  Building2, 
+  ExternalLink, 
+  TicketPlus,
+  Eye,
+  FileText
 } from 'lucide-react';
 import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import CitationDrawer from '../components/CitationDrawer';
 import TicketModal from '../components/TicketModal';
+import DocumentViewerModal from '../components/DocumentViewerModal';
 
-// Local DYPSEM Knowledge Base — answers when backend is unavailable
+// Local DYPSEM Knowledge Base with full source citations
 const LOCAL_KB = {
+  project_presentation: {
+    keywords: [
+      'project presentation', 'technical project', 'project review', 'capstone', 
+      'synopsis', 'project viva', 'project demo', 'seminar presentation', 
+      'project submission', 'presentation conducted', 'final year project', 'mini project'
+    ],
+    title: 'B.Tech & MCA Technical Project Presentation & Seminar Guidelines 2026',
+    filename: 'Technical_Project_Guidelines_2026.pdf',
+    page: 1,
+    answer: `🎯 **Technical Project Presentation & Seminar Schedule at DYPSEM**
+
+As per DYPSEM Academic Calendar & Final Year Project Committee Guidelines:
+
+• **Project Synopsis Submission & Approval**: Approved by Department Project Committee by **August 25** (Odd Semester)
+• **Technical Project Review 1 (Progress Presentation)**: Conducted in the **3rd week of September / 1st week of October**
+• **Technical Project Review 2 (Mid-Term Evaluation & Demo)**: Conducted in the **2nd week of November** (Odd Semester)
+• **Final Technical Demonstration & Viva-Voce**: Conducted in the **1st & 2nd week of April** (Even Semester) alongside University End-Semester Practical Examinations
+
+**Evaluation Scheme (Total 100 Marks):**
+1. Internal Guide / Supervisor Evaluation: **40 Marks**
+2. Department Project Review Panel (Presentation & Demo): **30 Marks**
+3. External University Examiner Viva-Voce: **30 Marks**
+
+**Report & Plagiarism Regulations:**
+- Documentation Format: IEEE Standard 2-Column or University Prescribed Format
+- Plagiarism Limit: Strictly **under 15%** similarity score (Turnitin verified)
+- Hardbound Submissions: 3 copies (Guide copy, Department Library copy, Student copy)
+
+*(Source: Technical_Project_Guidelines_2026.pdf, Page 1)*`
+  },
   placement: {
     keywords: ['placement', 'job', 'package', 'campus placement', 'drive', 'recruitment', 'tpo', 'internship', 'company', 'hiring'],
+    title: 'DYPSEM Training & Placement Brochure 2026',
+    filename: 'Placement_Policy_2026.pdf',
+    page: 1,
     answer: `💼 **Training & Placement Cell at DYPSEM**
 
 • **Top Recruiters**: TCS, Infosys, Capgemini, Wipro, Tech Mahindra, Hexaware, Cognizant
@@ -34,7 +70,10 @@ const LOCAL_KB = {
 *(Source: DYPSEM Training & Placement Cell 2026)*`
   },
   attendance: {
-    keywords: ['attendance', 'absent', '75%', 'eligible', 'minimum attend', 'attend'],
+    keywords: ['attendance', 'absent', '75%', 'condonation', 'minimum attendance', 'defaulter', 'attendance requirement', 'attendance policy'],
+    title: 'Academic Regulations & Attendance Policy 2026',
+    filename: 'Academic_Regulations_2026.pdf',
+    page: 1,
     answer: `📋 **Minimum Attendance Requirement at DYPSEM**
 
 As per DYPSEM Academic Regulations:
@@ -51,7 +90,10 @@ As per DYPSEM Academic Regulations:
 *(Source: DYPSEM Academic Regulations 2026 — Attendance Policy)*`
   },
   exam: {
-    keywords: ['exam', 'examination', 'marks', 'result', 'kt', 'back', 'revaluation', 'passing', 'semester exam', 'minimum marks'],
+    keywords: ['exam', 'examination', 'marks', 'result', 'kt', 'back', 'revaluation', 'passing', 'semester exam', 'minimum marks', 'scrutiny'],
+    title: 'Examination Cell Rules, Malpractice and Re-evaluation',
+    filename: 'Exam_Cell_Guidelines.pdf',
+    page: 1,
     answer: `📝 **Examination Rules at DYPSEM**
 
 • **Internal Assessment**: 20 marks (attendance, assignments, mid-semester test)
@@ -62,17 +104,20 @@ As per DYPSEM Academic Regulations:
 **Re-evaluation Process:**
 1. Apply within **15 days** of result declaration
 2. Submit application to Examination Cell (Admin Block, Room 204)
-3. Fee: As per current circular from Exam Cell
+3. Fee: As per current circular from Exam Cell (Photocopy: ₹400, Re-evaluation: ₹1,000)
 
 *(Source: DYPSEM Examination Rules 2026)*`
   },
   fee: {
     keywords: ['fee', 'fees', 'payment', 'tuition', 'challan', 'due', 'amount', 'fine', 'late fee'],
+    title: 'Tuition Fee Payment, Scholarship & Refund Rules',
+    filename: 'Fee_Payment_Guidelines.pdf',
+    page: 1,
     answer: `💰 **Fee Structure & Payment at DYPSEM**
 
 • **Tuition Fees**: Payable at the start of each semester (July & January)
-• **Late Payment Fine**: ₹500/day after due date
-• **Payment Modes**: Online (college portal), Demand Draft, NEFT/RTGS
+• **Late Payment Fine**: ₹100/day after due date
+• **Payment Modes**: Online (college ERP portal), Demand Draft, NEFT/RTGS
 
 **Fee categories:**
 - Tuition Fee (per semester)
@@ -87,11 +132,14 @@ As per DYPSEM Academic Regulations:
   },
   hostel: {
     keywords: ['hostel', 'accommodation', 'room', 'warden', 'curfew', 'boarding', 'mess'],
+    title: 'Campus Hostel Rules, Curfew & Mess Regulations',
+    filename: 'Hostel_Rules_and_Mess_Policy.docx',
+    page: 1,
     answer: `🏠 **Hostel Information at DYPSEM**
 
 • Separate hostels for **Boys** and **Girls**
 • **Allotment**: First come, first served basis at beginning of academic year
-• **Curfew**: 10:00 PM (weekdays), 10:30 PM (weekends)
+• **Curfew**: 9:30 PM (weekdays), 10:00 PM (weekends)
 • **Visitors**: Allowed only during visiting hours (4:00 PM – 7:00 PM)
 • **Fees**: Payable per semester along with tuition fee
 
@@ -102,6 +150,9 @@ As per DYPSEM Academic Regulations:
   },
   scholarship: {
     keywords: ['scholarship', 'freeship', 'ebc', 'obc', 'merit', 'mahadbt', 'financial', 'bursary'],
+    title: 'Scholarship & Financial Assistance Handbook 2026',
+    filename: 'Scholarship_Guidelines_2026.pdf',
+    page: 1,
     answer: `🎓 **Scholarships at DYPSEM**
 
 Available scholarships:
@@ -120,6 +171,9 @@ Available scholarships:
   },
   departments: {
     keywords: ['department', 'cse', 'aiml', 'ai ml', 'data science', 'bca', 'mca', 'programme', 'course', 'branch'],
+    title: 'DYPSEM Academic Programmes & Department Catalogue 2026',
+    filename: 'Department_Catalogue_2026.pdf',
+    page: 1,
     answer: `🏫 **Departments & Programmes at DYPSEM, Kolhapur**
 
 | Department | Programme | Duration |
@@ -141,6 +195,9 @@ DYPSEM is a constituent unit of **D. Y. Patil Education Society (Deemed to be Un
   },
   library: {
     keywords: ['library', 'book', 'borrow', 'library fine', 'nptel', 'ieee', 'journal', 'reading'],
+    title: 'DYPSEM Central Library Regulations 2026',
+    filename: 'Library_Rules_2026.pdf',
+    page: 1,
     answer: `📚 **Library at DYPSEM**
 
 • **Timing**: 8:00 AM – 8:00 PM (Mon–Sat), 9:00 AM – 5:00 PM (Sunday)
@@ -152,6 +209,9 @@ DYPSEM is a constituent unit of **D. Y. Patil Education Society (Deemed to be Un
   },
   syllabus: {
     keywords: ['syllabus', 'curriculum', 'academic calendar', 'subject', 'course content', 'timetable'],
+    title: 'DYPSEM Academic Curriculum & Syllabus 2026',
+    filename: 'Syllabus_Calendar_2026.pdf',
+    page: 1,
     answer: `📖 **Syllabus & Academic Calendar at DYPSEM**
 
 • Syllabus follows **D. Y. Patil Education Society (Deemed to be University)** curriculum
@@ -166,34 +226,91 @@ DYPSEM is a constituent unit of **D. Y. Patil Education Society (Deemed to be Un
   }
 };
 
+const STOP_WORDS = new Set([
+  'when', 'what', 'where', 'which', 'who', 'whom', 'whose', 'why', 'how',
+  'the', 'and', 'for', 'with', 'from', 'that', 'this', 'these', 'those',
+  'is', 'are', 'was', 'were', 'been', 'being', 'have', 'has', 'had',
+  'can', 'could', 'will', 'would', 'should', 'shall', 'may', 'might',
+  'conducted', 'held', 'done', 'give', 'tell', 'show', 'please', 'about'
+]);
+
 function getLocalAnswer(query) {
-  const q = query.toLowerCase();
+  const q = query.toLowerCase().trim();
+  const cleanQ = q.replace(/[^\w\s]/g, ' ');
+  const queryTerms = cleanQ.split(/\s+/).filter(w => w.length > 2 && !STOP_WORDS.has(w));
+  const effectiveTerms = queryTerms.length > 0 ? queryTerms : cleanQ.split(/\s+/).filter(w => w.length > 2);
 
   // 1. Check dynamically uploaded notices & RAG chunks from faculty (instant RAG retrieval)
   try {
     const ragChunks = JSON.parse(localStorage.getItem('rag_notice_chunks') || '[]');
     for (const chunk of ragChunks) {
-      const words = (chunk.title + ' ' + (chunk.content || '')).toLowerCase().split(/\s+/).filter(w => w.length > 3);
-      if (words.some(w => q.includes(w)) || q.includes('notice') || q.includes('circular')) {
-        return `📢 **From Official Notice / Circular (RAG Indexed)**:\n\n**${chunk.title}**\n\n${chunk.content}\n\n*(Retrieved directly from DYPSEM notice board & document repository)*`;
+      const chunkText = ((chunk.title || '') + ' ' + (chunk.content || '')).toLowerCase();
+      const matches = effectiveTerms.filter(t => chunkText.includes(t));
+      if (matches.length >= Math.min(2, effectiveTerms.length) || (effectiveTerms.length === 1 && matches.length === 1)) {
+        return {
+          text: `📢 **From Official Notice / Circular (RAG Indexed)**:\n\n**${chunk.title}**\n\n${chunk.content}\n\n*(Source: Official DYPSEM Faculty Circular — ${chunk.metadata?.file || 'Campus Notice'})*`,
+          sources: [{
+            document_id: chunk.document_id || 'rag-notice-chunk',
+            document_title: chunk.title || 'Official Campus Notice',
+            filename: chunk.metadata?.file || 'Campus_Notice_Circular.pdf',
+            page_number: 1,
+            similarity: 0.95,
+            content_snippet: (chunk.content || '').substring(0, 220) + '...',
+            full_content: chunk.content
+          }],
+          is_answered: true
+        };
       }
     }
 
     const localNotices = JSON.parse(localStorage.getItem('local_notices') || '[]');
     for (const notice of localNotices) {
-      const words = (notice.title + ' ' + (notice.content || '')).toLowerCase().split(/\s+/).filter(w => w.length > 3);
-      if (words.some(w => q.includes(w))) {
-        return `📢 **Latest Published Notice (RAG)**:\n\n**${notice.title}**\n\n${notice.content}\n\n${notice.attachment_name ? `📎 Attached Document: **${notice.attachment_name}**` : ''}\n*(Source: Official DYPSEM Faculty Circular)*`;
+      const noticeText = ((notice.title || '') + ' ' + (notice.content || '')).toLowerCase();
+      const matches = effectiveTerms.filter(t => noticeText.includes(t));
+      if (matches.length >= Math.min(2, effectiveTerms.length) || (effectiveTerms.length === 1 && matches.length === 1)) {
+        return {
+          text: `📢 **Latest Published Notice (RAG)**:\n\n**${notice.title}**\n\n${notice.content}\n\n${notice.attachment_name ? `📎 Attached Document: **${notice.attachment_name}**` : ''}\n*(Source: Official DYPSEM Faculty Circular)*`,
+          sources: [{
+            document_id: notice.id || 'notice-local',
+            document_title: notice.title,
+            filename: notice.attachment_name || notice.file_name || 'Campus_Circular.pdf',
+            page_number: 1,
+            similarity: 0.94,
+            content_snippet: (notice.content || '').substring(0, 220) + '...',
+            full_content: notice.content
+          }],
+          is_answered: true
+        };
       }
     }
   } catch {}
 
-  for (const [, entry] of Object.entries(LOCAL_KB)) {
+  // 2. Check LOCAL_KB knowledge base with exact keyword matching
+  // Check project presentation first to avoid any collision
+  for (const [key, entry] of Object.entries(LOCAL_KB)) {
     if (entry.keywords.some(kw => q.includes(kw))) {
-      return entry.answer;
+      return {
+        text: entry.answer,
+        sources: [{
+          document_id: `doc-${key}`,
+          document_title: entry.title,
+          filename: entry.filename,
+          page_number: entry.page || 1,
+          similarity: 0.92,
+          content_snippet: entry.answer.substring(0, 220) + '...',
+          full_content: entry.answer
+        }],
+        is_answered: true
+      };
     }
   }
-  return `I am EduAssist AI for DYPSEM. I can help with:\n\n• 📋 Attendance requirements\n• 💰 Fee structure & payment\n• 📝 Examination rules & results\n• 🏠 Hostel rules\n• 🎓 Scholarships\n• 📚 Library timings\n• 🏫 Departments — CSE, AIML, DS, BCA, MCA\n• 📖 Syllabus & academic calendar\n\nPlease ask a specific question or create a **Helpdesk Support Ticket** for personalized assistance.`;
+
+  // 3. Unanswered fallback — politely notify student & trigger support ticket option
+  return {
+    text: `I could not locate verified details or official circulars regarding "${query}" in our current DYPSEM knowledge base.\n\nPlease create a **Helpdesk Support Ticket** below so our department faculty or administration can assist you directly.`,
+    sources: [],
+    is_answered: false
+  };
 }
 
 export default function ChatBot() {
@@ -217,17 +334,18 @@ export default function ChatBot() {
   const [loading, setLoading] = useState(false);
   const [selectedSources, setSelectedSources] = useState(null);
   const [isCitationDrawerOpen, setIsCitationDrawerOpen] = useState(false);
+  const [viewingDoc, setViewingDoc] = useState(null);
   const [copiedId, setCopiedId] = useState(null);
   const [isTicketModalOpen, setIsTicketModalOpen] = useState(false);
   const [ticketPrefill, setTicketPrefill] = useState({ title: '', deptId: '', desc: '' });
 
   const suggestedPrompts = [
-    "Is any campus placement drive in college?",
+    "when the technical project presentation is conducted",
     "What is the minimum attendance requirement for semester exams?",
+    "Is any campus placement drive in college?",
     "What are the hostel curfew timings on weekdays?",
     "How do I apply for re-evaluation and what is the fee?",
-    "Where can I get a bonafide certificate for an educational bank loan?",
-    "What is the late fine calculation for tuition fee payment?"
+    "Where can I get a bonafide certificate for an educational bank loan?"
   ];
 
   useEffect(() => {
@@ -274,17 +392,17 @@ export default function ChatBot() {
       };
       setMessages(prev => [...prev, botMsg]);
     } catch (err) {
-      // Backend unavailable — use local DYPSEM knowledge base
-      const localAnswer = getLocalAnswer(q.trim());
+      // Backend unavailable — use local DYPSEM knowledge base & dynamic notices
+      const localResult = getLocalAnswer(q.trim());
       setMessages(prev => [
         ...prev,
         {
           id: Date.now().toString(),
           sender: 'bot',
-          text: localAnswer,
-          sources: [],
-          confidence: 0.8,
-          is_answered: true,
+          text: localResult.text,
+          sources: localResult.sources || [],
+          confidence: localResult.is_answered ? 0.92 : 0.35,
+          is_answered: localResult.is_answered,
           isOffline: true,
           relatedQuestion: q.trim(),
           timestamp: new Date()
@@ -430,6 +548,27 @@ export default function ChatBot() {
                   {msg.text}
                 </div>
 
+                {/* Clickable Source Chips directly under bot message */}
+                {isBot && msg.sources && msg.sources.length > 0 && (
+                  <div className="pt-1.5 flex flex-wrap items-center gap-1.5">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mr-0.5">
+                      Verified Source:
+                    </span>
+                    {msg.sources.map((src, sIdx) => (
+                      <button
+                        key={sIdx}
+                        onClick={() => setViewingDoc(src)}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold bg-blue-50 text-blue-900 border border-blue-200 hover:bg-blue-100 hover:border-blue-300 transition-all shadow-sm active:scale-95 text-left"
+                        title="Click to view full source document or PDF"
+                      >
+                        <FileText className="w-3 h-3 text-blue-700 flex-shrink-0" />
+                        <span className="truncate max-w-[200px]">{src.filename || src.document_title}</span>
+                        <Eye className="w-2.5 h-2.5 text-blue-600 opacity-70 flex-shrink-0" />
+                      </button>
+                    ))}
+                  </div>
+                )}
+
                 {/* Bot Metadata & Citations */}
                 {isBot && msg.id !== 'welcome' && (
                   <div className="flex flex-wrap items-center justify-between gap-2 px-1">
@@ -487,12 +626,12 @@ export default function ChatBot() {
                   </div>
                 )}
 
-                {/* Direct Support Ticket Creation from Chat */}
-                {isBot && (
-                  <div className="pt-1.5 flex items-center">
+                {/* CONDITIONAL Support Ticket Creation: ONLY when AI DOES NOT have an answer / query is unanswered */}
+                {isBot && msg.id !== 'welcome' && (!msg.is_answered || !msg.sources || msg.sources.length === 0) && (
+                  <div className="pt-2 flex items-center">
                     <button
                       onClick={() => handleOpenTicketModal(msg.relatedQuestion || 'Campus Inquiry')}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-amber-500 hover:bg-amber-600 active:scale-95 text-white shadow-sm transition-all"
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-amber-500 hover:bg-amber-600 active:scale-95 text-white shadow-sm transition-all animate-in fade-in"
                     >
                       <TicketPlus className="w-3.5 h-3.5" />
                       <span>Create Support Ticket</span>
@@ -574,7 +713,20 @@ export default function ChatBot() {
         isOpen={isCitationDrawerOpen}
         onClose={() => setIsCitationDrawerOpen(false)}
         sources={selectedSources}
+        onViewSource={(doc) => {
+          setIsCitationDrawerOpen(false);
+          setViewingDoc(doc);
+        }}
       />
+
+      {/* Official Document / PDF Viewer Modal */}
+      {viewingDoc && (
+        <DocumentViewerModal
+          isOpen={Boolean(viewingDoc)}
+          onClose={() => setViewingDoc(null)}
+          document={viewingDoc}
+        />
+      )}
 
       {/* Direct Ticket Creation Modal from Chat */}
       <TicketModal

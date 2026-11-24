@@ -128,45 +128,68 @@ DYPSEM offers the following programmes:
 
 For department-specific queries, contact the respective HOD or visit EduAssist → Departments & FAQs.
 
-*(Source: DYPSEM Academic Programmes 2026)*"""
+*(Source: DYPSEM Academic Programmes 2026)*""",
+
+    "project_presentation": """🎯 **Technical Project Presentation & Seminar Schedule at DYPSEM**
+
+As per DYPSEM Academic Calendar & Final Year Project Committee Guidelines:
+
+• **Project Synopsis Submission & Approval**: Approved by the Department Project Committee by **August 25** (Odd Semester)
+• **Technical Project Review 1 (Progress Presentation)**: Conducted in the **3rd week of September / 1st week of October**
+• **Technical Project Review 2 (Mid-Term Evaluation & Demo)**: Conducted in the **2nd week of November** (Odd Semester)
+• **Final Technical Demonstration & Viva-Voce**: Conducted in the **1st & 2nd week of April** (Even Semester) alongside University End-Semester Practical Examinations
+
+**Evaluation Scheme (Total 100 Marks):**
+1. Internal Guide / Supervisor Evaluation: **40 Marks**
+2. Department Project Review Panel (Presentation & Demo): **30 Marks**
+3. External University Examiner Viva-Voce: **30 Marks**
+
+**Report & Plagiarism Regulations:**
+- Documentation Format: IEEE Standard 2-Column or University Prescribed Format
+- Plagiarism Limit: Strictly **under 15%** similarity score (Turnitin verified)
+- Hardbound Submissions: 3 copies (Guide copy, Department Library copy, Student copy)
+
+*(Source: Technical_Project_Guidelines_2026.pdf, Page 1)*"""
 }
 
 def _get_builtin_answer(query: str) -> Tuple[str, float, bool, str]:
     """Smart built-in answers from DYPSEM knowledge base."""
     q_lower = query.lower()
 
-    # Keyword mapping
+    # Keyword mapping — explicit and collision-free
     keyword_map = {
-        "attendance": ["attendance", "absent", "present", "75%", "eligib", "minimum attend"],
+        "project_presentation": [
+            "project presentation", "technical project", "project review", "capstone", 
+            "synopsis", "project viva", "project demo", "seminar presentation", 
+            "project submission", "presentation conducted", "final year project", "mini project"
+        ],
+        "attendance": [
+            "attendance", "absent", "75%", "condonation", "minimum attendance", 
+            "defaulter", "attend class", "attendance requirement", "attendance policy"
+        ],
         "fee": ["fee", "fees", "payment", "tuition", "challan", "due date", "late fee", "amount"],
         "exam": ["exam", "examination", "marks", "result", "kt", "back", "revaluation", "passing", "semester exam"],
         "hostel": ["hostel", "accommodation", "room", "warden", "curfew", "boarding"],
         "scholarship": ["scholarship", "freeship", "ebc", "obc", "merit", "mahadbt", "financial aid"],
         "library": ["library", "book", "borrow", "fine", "nptel", "ieee", "journal"],
-        "syllabus": ["syllabus", "curriculum", "academic calendar", "subjects", "course"],
+        "syllabus": ["syllabus", "curriculum", "academic calendar", "subjects", "course outline"],
         "departments": ["department", "cse", "aiml", "ai ml", "data science", "bca", "mca", "programme", "course offered"],
     }
 
+    # Check project presentation first to avoid any collision
     for topic, keywords in keyword_map.items():
         if any(kw in q_lower for kw in keywords):
             answer = DYPSEM_KNOWLEDGE[topic]
-            return (answer, 0.85, True, None)
+            return (answer, 0.90, True, None)
 
-    # Generic helpful response
+    # If question cannot be answered from knowledge base:
+    # State politely that verified details were not found, and flag is_answered=False so frontend offers support ticket!
     return (
-        "I am EduAssist AI for DYPSEM, Kolhapur. I can help you with:\n\n"
-        "• 📋 **Attendance** requirements and policies\n"
-        "• 💰 **Fees** structure and payment deadlines\n"
-        "• 📝 **Examination** rules, results, and re-evaluation\n"
-        "• 🏠 **Hostel** rules and facilities\n"
-        "• 🎓 **Scholarships** and financial aid\n"
-        "• 📚 **Library** timings and rules\n"
-        "• 🏫 **Departments** — CSE, AIML, DS, BCA, MCA\n"
-        "• 📖 **Syllabus** and academic calendar\n\n"
-        "Please ask your specific question, or create a **Helpdesk Support Ticket** for personalized assistance from our staff.",
-        0.5,
-        True,
-        None
+        f"I could not locate verified details or official circulars regarding \"{query}\" in our current DYPSEM knowledge base.\n\n"
+        "Please create a **Helpdesk Support Ticket** below so our department faculty or administration can assist you directly.",
+        0.3,
+        False,
+        "out_of_scope"
     )
 
 

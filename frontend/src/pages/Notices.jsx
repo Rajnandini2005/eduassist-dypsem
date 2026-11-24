@@ -11,11 +11,13 @@ import {
   CheckCircle2,
   Users,
   FileText,
-  Download
+  Download,
+  Eye
 } from 'lucide-react';
 import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import NoticeEditModal from '../components/NoticeEditModal';
+import DocumentViewerModal from '../components/DocumentViewerModal';
 
 export default function Notices() {
   const { user } = useAuth();
@@ -24,6 +26,7 @@ export default function Notices() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [noticeToEdit, setNoticeToEdit] = useState(null);
   const [categoryFilter, setCategoryFilter] = useState('');
+  const [viewingDoc, setViewingDoc] = useState(null);
 
   const fetchNotices = async () => {
     setLoading(true);
@@ -220,18 +223,20 @@ export default function Notices() {
                       <p className="text-[10px] text-blue-700 font-medium">Official Attached Circular (RAG Indexed)</p>
                     </div>
                   </div>
-                  {notice.attachment_url && (
-                    <a
-                      href={notice.attachment_url}
-                      download={notice.attachment_name || "Official_Circular.pdf"}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-900 hover:bg-blue-800 text-white text-[11px] font-bold shadow-sm transition-all flex-shrink-0"
-                    >
-                      <Download className="w-3.5 h-3.5" />
-                      <span>View</span>
-                    </a>
-                  )}
+                  <button
+                    onClick={() => setViewingDoc({
+                      title: notice.title,
+                      document_title: notice.title,
+                      filename: notice.attachment_name || notice.file_name || 'Official_Circular.pdf',
+                      content: `CAMPUS CIRCULAR & OFFICIAL ANNOUNCEMENT\n\nTitle: ${notice.title}\nDepartment: ${notice.department_name}\nCategory: ${notice.category}\nTarget: ${notice.target_audience}\nDate: ${new Date(notice.created_at).toLocaleDateString()}\n\n${notice.content}`,
+                      full_content: `CAMPUS CIRCULAR & OFFICIAL ANNOUNCEMENT\n\nTitle: ${notice.title}\nDepartment: ${notice.department_name}\nCategory: ${notice.category}\nTarget: ${notice.target_audience}\nDate: ${new Date(notice.created_at).toLocaleDateString()}\n\n${notice.content}`,
+                      similarity: 1.0
+                    })}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-900 hover:bg-blue-800 text-white text-[11px] font-bold shadow-sm transition-all flex-shrink-0"
+                  >
+                    <Eye className="w-3.5 h-3.5" />
+                    <span>View</span>
+                  </button>
                 </div>
               )}
 
@@ -255,6 +260,15 @@ export default function Notices() {
         noticeToEdit={noticeToEdit}
         onSaved={fetchNotices}
       />
+
+      {/* Official Circular / Document Viewer Modal */}
+      {viewingDoc && (
+        <DocumentViewerModal
+          isOpen={Boolean(viewingDoc)}
+          onClose={() => setViewingDoc(null)}
+          document={viewingDoc}
+        />
+      )}
 
     </div>
   );

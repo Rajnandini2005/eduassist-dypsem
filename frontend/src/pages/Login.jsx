@@ -240,7 +240,7 @@ export default function Login() {
       </div>
 
       {/* White card */}
-      <div className="flex-1 bg-slate-50 rounded-t-3xl -mt-6 px-5 pt-6 pb-28 overflow-y-auto">
+      <div className="flex-1 bg-slate-50 rounded-t-3xl -mt-6 px-5 pt-6 pb-48 overflow-y-auto shadow-inner">
 
         {/* College strip */}
         <div className="flex items-center gap-3 mb-5 p-3.5 rounded-2xl bg-blue-50 border border-blue-100">
@@ -580,14 +580,20 @@ export default function Login() {
                 </button>
               </div>
               {confirmPassword && password === confirmPassword && (
-                <p className="mt-1.5 text-xs text-green-600 font-bold flex items-center gap-1">
-                  <CheckCircle className="w-3.5 h-3.5" /> Passwords match ✓
-                </p>
+                <div className="mt-2 p-2.5 bg-green-50 border border-green-200 rounded-xl text-xs text-green-700 font-bold flex items-center gap-1.5 animate-in fade-in">
+                  <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0" />
+                  <span>Passwords match perfectly ✓</span>
+                </div>
               )}
               {confirmPassword && password !== confirmPassword && (
-                <div className="mt-1.5 p-2.5 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 font-semibold flex items-center gap-1.5">
-                  <AlertCircle className="w-4 h-4 flex-shrink-0 text-red-600" />
-                  <span>Passwords do not match! Please make sure both passwords are identical.</span>
+                <div className="mt-2 p-3 bg-red-50 border-2 border-red-200 rounded-xl text-xs text-red-700 font-bold space-y-1 animate-in fade-in">
+                  <div className="flex items-center gap-1.5">
+                    <AlertCircle className="w-4 h-4 flex-shrink-0 text-red-600" />
+                    <span>Passwords do not match!</span>
+                  </div>
+                  <p className="text-[11px] text-red-600 font-normal pl-5">
+                    First password has {password.length} characters; confirm password has {confirmPassword.length} characters. Both must be identical.
+                  </p>
                 </div>
               )}
             </div>
@@ -600,19 +606,21 @@ export default function Login() {
               </div>
             )}
 
-            {/* Submit */}
-            <button type="submit" disabled={loading}
-              className={`w-full py-4 rounded-xl text-white text-sm font-black shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-60 ${
-                signupRole === 'faculty'
-                  ? 'bg-amber-500 hover:bg-amber-600 shadow-amber-500/25'
-                  : 'bg-[#0f2d52] hover:bg-blue-900 shadow-blue-900/25'
-              }`}>
-              {loading ? (
-                <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /><span>Creating Account...</span></>
-              ) : (
-                <><span>Create {signupRole === 'faculty' ? '🏫 Faculty' : '🎓 Student'} Account</span><ArrowRight className="w-4 h-4" /></>
-              )}
-            </button>
+            {/* Submit — prominent, high-contrast, fully visible */}
+            <div className="pt-2 pb-1">
+              <button type="submit" disabled={loading}
+                className={`w-full py-4 rounded-2xl text-white text-sm font-black shadow-xl transition-all flex items-center justify-center gap-2 active:scale-95 disabled:opacity-60 cursor-pointer ${
+                  signupRole === 'faculty'
+                    ? 'bg-amber-500 hover:bg-amber-600 shadow-amber-500/30 ring-2 ring-amber-400'
+                    : 'bg-[#0f2d52] hover:bg-blue-900 shadow-blue-900/30 ring-2 ring-blue-700'
+                }`}>
+                {loading ? (
+                  <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /><span>Creating Account...</span></>
+                ) : (
+                  <><span>Create {signupRole === 'faculty' ? '🏫 Faculty' : '🎓 Student'} Account</span><ArrowRight className="w-4 h-4" /></>
+                )}
+              </button>
+            </div>
 
             <p className="text-center text-xs text-slate-500">
               Already have an account?{' '}
