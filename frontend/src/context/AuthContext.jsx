@@ -352,22 +352,21 @@ function findLocalUser(email, password) {
   const userMatches = (u) => {
     const uClean = u.email.toLowerCase();
     const uNorm = uClean.replace('@dypsemedu.in', '@dypsem.edu.in');
-    const emailMatches = uClean === clean || uNorm === norm || uClean === norm || uNorm === clean;
-    if (!emailMatches) return false;
-    // Match password or allow student login seamlessly
-    return !password || u.password === password ||
-           u.password.toLowerCase() === (password || '').toLowerCase() ||
-           ['sakshi@2527', 'smita@2527', 'vaishnavi@2527', 'madhura@2527', 'password123', 'eduassist@2025#dyp'].includes((password || '').toLowerCase()) ||
-           u.role === 'student';
+    return uClean === clean || uNorm === norm || uClean === norm || uNorm === clean;
   };
 
-  // 1. Check pre-seeded DYPSEM users first (guaranteed access)
+  // 1. Check pre-seeded DYPSEM users first
   const seedMatch = SEED_USERS.find(userMatches);
-  if (seedMatch) return seedMatch;
+  const targetUser = seedMatch || getLocalUsers().find(userMatches);
+  if (!targetUser) return null;
 
-  // 2. Check locally saved users
-  const users = getLocalUsers();
-  return users.find(userMatches) || null;
+  // Strict password check
+  const pwClean = (password || '').trim();
+  const targetPw = (targetUser.password || '').trim();
+  if (targetPw === pwClean || targetPw.toLowerCase() === pwClean.toLowerCase()) {
+    return targetUser;
+  }
+  return { error: 'INCORRECT_PASSWORD', user: targetUser };
 }
 
 function findLocalUserByEmail(email) {
@@ -480,14 +479,18 @@ export const AuthProvider = ({ children }) => {
     initAuth();
   }, []);
 
-  // ── LOGIN — tries local store FIRST, then backend, auto-recovers gracefully ──────────────
-  // This ensures 24/7 login even when Render backend is sleeping or on different devices
+  // ── LOGIN — strictly validates credentials against registered users (FR-01, FR-02, FR-05) ──
   const login = async (email, password) => {
     setLoading(true);
     try {
       const cleanEmail = (email || '').trim().toLowerCase();
-      // 1. Check local store first
-      let localUser = findLocalUser(cleanEmail, password);
+      const localResult = findLocalUser(cleanEmail, password);
+
+      if (localResult?.error === 'INCORRECT_PASSWORD') {
+        throw new Error('INCORRECT_PASSWORD');
+      }
+
+      let localUser = localResult && !localResult.error ? localResult : null;
 
       // 2. If not found in local store, try backend
       if (!localUser) {
@@ -500,43 +503,13 @@ export const AuthProvider = ({ children }) => {
               localStorage.setItem('helpdesk_token', res.access_token);
             }
           }
-        } catch {
-          // Backend offline or user not yet synced across devices — auto register locally for ANY student!
-          const rawName = cleanEmail.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-          const isFemale = /sakshi|smita|vaishnavi|madhura|rajnandini|priya|pooja|snehal|tanvi|neha|aarti|shreya|ananya|kavya|riya|aditi/i.test(cleanEmail);
-          const fullName = cleanEmail.includes('sakshi') ? 'Sakshi Mahesh Belwalkar'
-                         : cleanEmail.includes('smita') ? 'Smita Chandrakant Fatale'
-                         : cleanEmail.includes('vaishnavi') ? 'Vaishnavi Nandkumar Khot'
-                         : cleanEmail.includes('madhurasp') ? 'Madhura Santosh Patil'
-                         : cleanEmail.includes('madhura') ? 'Madhura Sharad Patil'
-                         : rawName || 'College Student';
-          const rollNo = cleanEmail.includes('sakshi') ? '3'
-                       : cleanEmail.includes('smita') ? '24'
-                       : cleanEmail.includes('vaishnavi') ? '37'
-                       : cleanEmail.includes('madhurasp') ? '57'
-                       : cleanEmail.includes('madhura') ? '58'
-                       : 'DYP-' + Math.floor(1000 + Math.random() * 9000);
-          const prnNo = cleanEmail.includes('sakshi') ? '2023025005'
-                      : cleanEmail.includes('smita') ? '2023025036'
-                      : cleanEmail.includes('vaishnavi') ? '2023025076'
-                      : cleanEmail.includes('madhurasp') ? '2023025124'
-                      : cleanEmail.includes('madhura') ? '2023025125'
-                      : '2026' + Math.floor(100000 + Math.random() * 900000);
-          localUser = {
-            id: 'user-' + Date.now(),
-            email: cleanEmail,
-            password: password,
-            full_name: fullName,
-            role: 'student',
-            gender: isFemale ? 'female' : 'male',
-            avatar: isFemale ? '/avatar-girl.jpg' : '/avatar-boy.jpg',
-            course: cleanEmail.includes('bca') ? 'BCA' : cleanEmail.includes('mca') ? 'MCA' : cleanEmail.includes('aiml') ? 'B.Tech AIML' : cleanEmail.includes('ds') ? 'B.Tech DS' : 'B.Tech CSE',
-            year_class: 'College Student',
-            department: cleanEmail.includes('bca') ? 'Bachelor of Computer Applications' : cleanEmail.includes('mca') ? 'Master of Computer Applications' : 'Computer Science & Engineering',
-            roll_no: rollNo,
-            prn_no: prnNo
-          };
-          saveLocalUser(localUser);
+        } catch (apiErr) {
+          const errDetail = (apiErr.message || '').toLowerCase();
+          if (errDetail.includes('credentials') || errDetail.includes('password') || errDetail.includes('401')) {
+            throw new Error('INCORRECT_PASSWORD');
+          }
+          // Account does not exist — user MUST register first
+          throw new Error('USER_NOT_FOUND');
         }
       }
 
@@ -556,7 +529,7 @@ export const AuthProvider = ({ children }) => {
         return safeUser;
       }
 
-      throw new Error('WRONG_CREDENTIALS');
+      throw new Error('USER_NOT_FOUND');
     } finally {
       setLoading(false);
     }

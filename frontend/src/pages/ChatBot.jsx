@@ -234,58 +234,206 @@ const STOP_WORDS = new Set([
   'conducted', 'held', 'done', 'give', 'tell', 'show', 'please', 'about'
 ]);
 
+// Entity domain definitions to prevent cross-domain keyword collisions (e.g. Scholarship Form vs Exam Form)
+const DOMAIN_KEYWORDS = {
+  scholarship: ['scholarship', 'scholarships', 'mahadbt', 'ebc', 'freeship', 'bursary', 'financial aid'],
+  exam: ['exam', 'examination', 'reval', 'revaluation', 'backlog', 'kt', 'marksheet', 'hall ticket', 'admit card', 'scrutiny'],
+  project: ['project', 'capstone', 'synopsis', 'presentation', 'seminar', 'viva', 'project review'],
+  fee: ['fee', 'fees', 'tuition', 'challan', 'installment', 'late fee', 'fine'],
+  hostel: ['hostel', 'mess', 'curfew', 'warden', 'room allotment'],
+  placement: ['placement', 'campus drive', 'recruiter', 'package', 'internship', 'tpo', 'company'],
+  attendance: ['attendance', 'absent', 'condonation', 'defaulter', '75%']
+};
+
 function getLocalAnswer(query) {
   const q = query.toLowerCase().trim();
   const cleanQ = q.replace(/[^\w\s]/g, ' ');
   const queryTerms = cleanQ.split(/\s+/).filter(w => w.length > 2 && !STOP_WORDS.has(w));
   const effectiveTerms = queryTerms.length > 0 ? queryTerms : cleanQ.split(/\s+/).filter(w => w.length > 2);
 
-  // 1. Check dynamically uploaded notices & RAG chunks from faculty (instant RAG retrieval)
+  // 1. Detect target query domain and specific intent
+  let queryDomain = null;
+  for (const [domain, kws] of Object.entries(DOMAIN_KEYWORDS)) {
+    if (kws.some(kw => q.includes(kw))) {
+      queryDomain = domain;
+      break;
+    }
+  }
+
+  const isTimetableQuery = /\b(timetable|time\s*table|datesheet|date\s*sheet|routine|exam\s*schedule)\b/i.test(q);
+  const isDeadlineQuery = /\b(last\s*date|deadline|due\s*date|final\s*date|last\s*day)\b/i.test(q);
+
+  // 2. Gather and sort all dynamic notices & RAG chunks
+  let candidateNotices = [];
   try {
+    const localNotices = JSON.parse(localStorage.getItem('local_notices') || '[]');
     const ragChunks = JSON.parse(localStorage.getItem('rag_notice_chunks') || '[]');
-    for (const chunk of ragChunks) {
-      const chunkText = ((chunk.title || '') + ' ' + (chunk.content || '')).toLowerCase();
-      const matches = effectiveTerms.filter(t => chunkText.includes(t));
-      if (matches.length >= Math.min(2, effectiveTerms.length) || (effectiveTerms.length === 1 && matches.length === 1)) {
-        return {
-          text: `📢 **From Official Notice / Circular (RAG Indexed)**:\n\n**${chunk.title}**\n\n${chunk.content}\n\n*(Source: Official DYPSEM Faculty Circular — ${chunk.metadata?.file || 'Campus Notice'})*`,
-          sources: [{
-            document_id: chunk.document_id || 'rag-notice-chunk',
-            document_title: chunk.title || 'Official Campus Notice',
-            filename: chunk.metadata?.file || 'Campus_Notice_Circular.pdf',
-            page_number: 1,
-            similarity: 0.95,
-            content_snippet: (chunk.content || '').substring(0, 220) + '...',
-            full_content: chunk.content
-          }],
-          is_answered: true
-        };
-      }
+    
+    // Normalize into candidate pool
+    for (const n of localNotices) {
+      candidateNotices.push({
+        id: n.id,
+        title: n.title,
+        content: n.content || '',
+        category: n.category || 'General',
+        status: n.status || 'active',
+        created_at: n.created_at || new Date().toISOString(),
+        attachment_name: n.attachment_name || n.file_name,
+        source_type: 'notice'
+      });
     }
 
-    const localNotices = JSON.parse(localStorage.getItem('local_notices') || '[]');
-    for (const notice of localNotices) {
-      const noticeText = ((notice.title || '') + ' ' + (notice.content || '')).toLowerCase();
-      const matches = effectiveTerms.filter(t => noticeText.includes(t));
-      if (matches.length >= Math.min(2, effectiveTerms.length) || (effectiveTerms.length === 1 && matches.length === 1)) {
-        return {
-          text: `📢 **Latest Published Notice (RAG)**:\n\n**${notice.title}**\n\n${notice.content}\n\n${notice.attachment_name ? `📎 Attached Document: **${notice.attachment_name}**` : ''}\n*(Source: Official DYPSEM Faculty Circular)*`,
-          sources: [{
-            document_id: notice.id || 'notice-local',
-            document_title: notice.title,
-            filename: notice.attachment_name || notice.file_name || 'Campus_Circular.pdf',
-            page_number: 1,
-            similarity: 0.94,
-            content_snippet: (notice.content || '').substring(0, 220) + '...',
-            full_content: notice.content
-          }],
-          is_answered: true
-        };
+    for (const c of ragChunks) {
+      if (!candidateNotices.some(n => n.id === c.document_id || n.title === c.title)) {
+        candidateNotices.push({
+          id: c.document_id || c.id,
+          title: c.title,
+          content: c.content || '',
+          category: c.metadata?.category || 'General',
+          status: c.status || 'active',
+          created_at: c.created_at || new Date().toISOString(),
+          attachment_name: c.metadata?.file,
+          source_type: 'chunk'
+        });
       }
     }
   } catch {}
 
-  // 2. Check LOCAL_KB knowledge base with exact keyword matching
+  // Sort candidate notices by created_at DESCENDING (newest first!)
+  candidateNotices.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+  // Score candidate notices with strict domain protection & recency
+  let bestCandidate = null;
+  let bestScore = -1;
+
+  for (const notice of candidateNotices) {
+    const fullText = (notice.title + ' ' + notice.content).toLowerCase();
+    
+    // Domain protection: If query is specifically about scholarship, notice MUST contain scholarship keyword!
+    if (queryDomain === 'scholarship') {
+      const hasScholarshipTerm = DOMAIN_KEYWORDS.scholarship.some(kw => fullText.includes(kw));
+      if (!hasScholarshipTerm) continue; // REJECT academic exam notice!
+    } else if (queryDomain === 'exam') {
+      const hasExamTerm = DOMAIN_KEYWORDS.exam.some(kw => fullText.includes(kw));
+      const hasScholarshipTerm = DOMAIN_KEYWORDS.scholarship.some(kw => fullText.includes(kw));
+      // If query is pure exam, do not match a pure scholarship notice
+      if (!hasExamTerm && hasScholarshipTerm) continue;
+    } else if (queryDomain === 'project') {
+      const hasProjectTerm = DOMAIN_KEYWORDS.project.some(kw => fullText.includes(kw));
+      if (!hasProjectTerm) continue;
+    }
+
+    // Keyword overlap
+    let matchCount = 0;
+    for (const term of effectiveTerms) {
+      if (fullText.includes(term)) matchCount++;
+    }
+
+    // Must have at least 1 meaningful keyword match
+    if (matchCount === 0) continue;
+
+    let score = matchCount * 10;
+    if (effectiveTerms.some(term => notice.title.toLowerCase().includes(term))) {
+      score += 20; // Title match bonus
+    }
+
+    // Recency & Status weighting
+    if (notice.status === 'active') {
+      score += 15;
+    } else if (notice.status === 'superseded') {
+      score -= 25; // Penalize older superseded notices
+    }
+
+    // Newest notice gets priority (handles morning vs evening upload on same day)
+    const ageHours = Math.max(0, (Date.now() - new Date(notice.created_at).getTime()) / 3600000);
+    score += Math.max(0, 10 - ageHours);
+
+    if (score > bestScore) {
+      bestScore = score;
+      bestCandidate = notice;
+    }
+  }
+
+  // 3. Evaluate best matched notice for the specific question
+  if (bestCandidate && bestScore >= 15) {
+    const content = bestCandidate.content;
+    const noticeTime = new Date(bestCandidate.created_at);
+    const timeStr = noticeTime.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) + ' ' + 
+                    noticeTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+    // Check specific intent: TIMETABLE asked, but notice is only rules
+    const isRulesNotice = /rule|guideline|conduct|malpractice|discipline|instruction/i.test(bestCandidate.title + ' ' + content);
+    const hasTimetableData = /timetable|time\s*table|datesheet|date\s*sheet|\d{1,2}:\d{2}\s*(?:am|pm)|slot\s*[a-z0-9]|paper\s*code/i.test(content);
+
+    if (isTimetableQuery && isRulesNotice && !hasTimetableData) {
+      return {
+        text: `📋 **Official Circular Reviewed**: The college has issued "**${bestCandidate.title}**", which outlines examination rules, hall regulations, and candidate code of conduct.\n\n⚠️ **Examination Timetable is NOT available in this notice**: The specific course/semester examination timetable has not been released in this circular.\n\nPlease create a **Helpdesk Support Ticket** below so the Examination Cell can provide your department's official timetable directly.`,
+        sources: [],
+        is_answered: false,
+        needsTicket: true
+      };
+    }
+
+    // Check specific intent: DEADLINE / LAST DATE asked
+    if (isDeadlineQuery) {
+      // Find sentence mentioning deadline
+      const sentences = content.split(/[.\n]/).map(s => s.trim()).filter(Boolean);
+      const deadlineSentence = sentences.find(s => /last\s*date|deadline|due\s*date|submit\s*before|on\s*or\s*before/i.test(s));
+      
+      const statusNote = bestCandidate.status === 'active' 
+        ? `\n\n*(Note: This is the latest active circular updated on ${timeStr}, superseding previous announcements)*`
+        : '';
+
+      return {
+        text: `📅 **Official Notification Details [${bestCandidate.title}]**:\n\n` +
+              (deadlineSentence ? `• **Deadline / Last Date**: **${deadlineSentence}**\n\n` : '') +
+              `• **Circular Summary**:\n${content.substring(0, 350)}${content.length > 350 ? '...' : ''}` +
+              statusNote +
+              `\n\n*(Source: ${bestCandidate.title}${bestCandidate.attachment_name ? ` — ${bestCandidate.attachment_name}` : ''})*`,
+        sources: [{
+          document_id: bestCandidate.id,
+          document_title: bestCandidate.title,
+          filename: bestCandidate.attachment_name || 'Campus_Notice_Circular.pdf',
+          page_number: 1,
+          similarity: 0.96,
+          content_snippet: content.substring(0, 220) + '...',
+          full_content: content
+        }],
+        is_answered: true
+      };
+    }
+
+    // Standard specific notice answer
+    const statusNote = bestCandidate.status === 'active' 
+      ? `*(Latest Active Notice — Published: ${timeStr})*` 
+      : `*(Notice Published: ${timeStr})*`;
+
+    return {
+      text: `📢 **From Official Notice / Circular**:\n\n**${bestCandidate.title}**\n${statusNote}\n\n${content}\n\n*(Source: Official DYPSEM Circular — ${bestCandidate.attachment_name || 'Campus Notice'})*`,
+      sources: [{
+        document_id: bestCandidate.id,
+        document_title: bestCandidate.title,
+        filename: bestCandidate.attachment_name || 'Campus_Notice_Circular.pdf',
+        page_number: 1,
+        similarity: 0.95,
+        content_snippet: content.substring(0, 220) + '...',
+        full_content: content
+      }],
+      is_answered: true
+    };
+  }
+
+  // 4. Timetable query where no timetable notice exists
+  if (isTimetableQuery) {
+    return {
+      text: `📋 The official course examination timetable for the current semester has not been published in the active circulars yet.\n\nPlease create a **Helpdesk Support Ticket** below so the Examination Cell can provide your department's official timetable directly once scheduled.`,
+      sources: [],
+      is_answered: false,
+      needsTicket: true
+    };
+  }
+
+  // 5. Check LOCAL_KB knowledge base with exact keyword matching
   // Check project presentation first to avoid any collision
   for (const [key, entry] of Object.entries(LOCAL_KB)) {
     if (entry.keywords.some(kw => q.includes(kw))) {
@@ -305,7 +453,7 @@ function getLocalAnswer(query) {
     }
   }
 
-  // 3. Unanswered fallback — politely notify student & trigger support ticket option
+  // 6. Unanswered fallback — politely notify student & trigger support ticket option
   return {
     text: `I could not locate verified details or official circulars regarding "${query}" in our current DYPSEM knowledge base.\n\nPlease create a **Helpdesk Support Ticket** below so our department faculty or administration can assist you directly.`,
     sources: [],

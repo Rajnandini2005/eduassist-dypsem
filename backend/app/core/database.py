@@ -948,12 +948,20 @@ class Database:
             "category": data.get("category", "General"),
             "department_id": data.get("department_id"),
             "is_pinned": bool(data.get("is_pinned", False)),
+            "status": data.get("status", "active"),
             "target_audience": data.get("target_audience", "all"),
             "attachment_url": data.get("attachment_url"),
             "attachment_name": data.get("attachment_name") or data.get("file_name"),
             "created_by": data.get("created_by"),
             "created_at": datetime.now(timezone.utc)
         }
+
+        # If marked to supersede older notices in category
+        if data.get("supersede_category") or data.get("status") == "active":
+            for old_n in NOTICES:
+                if old_n.get("category", "").lower() == notice["category"].lower():
+                    old_n["status"] = "superseded"
+
         NOTICES.insert(0, notice)
 
         # RAG Indexing: Create a searchable document chunk for the AI Chatbot
@@ -965,12 +973,14 @@ class Database:
             "document_title": f"Campus Circular: {notice['title']}",
             "filename": f"Notice_{notice['category']}.txt",
             "page_number": 1,
-            "content": f"OFFICIAL CAMPUS CIRCULAR & NOTICE\nTitle: {notice['title']}\nDepartment: {dept_name}\nCategory: {notice['category']}\nTarget: {notice['target_audience']}\nCircular Details: {notice['content']}\nAttachment File: {notice.get('attachment_name') or notice.get('attachment_url') or 'None'}",
+            "content": f"OFFICIAL CAMPUS CIRCULAR & NOTICE\nTitle: {notice['title']}\nDepartment: {dept_name}\nCategory: {notice['category']}\nStatus: {notice['status']}\nTarget: {notice['target_audience']}\nCircular Details: {notice['content']}\nAttachment File: {notice.get('attachment_name') or notice.get('attachment_url') or 'None'}",
             "metadata": {
                 "source": "Campus Notice",
                 "notice_id": notice_id,
                 "title": notice["title"],
                 "category": notice["category"],
+                "status": notice["status"],
+                "created_at": notice["created_at"].isoformat(),
                 "attachment": notice.get("attachment_name") or notice.get("attachment_url")
             },
             "created_at": datetime.now(timezone.utc)

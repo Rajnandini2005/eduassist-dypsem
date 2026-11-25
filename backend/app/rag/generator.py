@@ -156,13 +156,24 @@ def _get_builtin_answer(query: str) -> Tuple[str, float, bool, str]:
     """Smart built-in answers from DYPSEM knowledge base."""
     q_lower = query.lower()
 
-    # Keyword mapping — explicit and collision-free
+    # Check timetable query first: if no timetable chunk exists, prompt for ticket!
+    if any(k in q_lower for k in ["timetable", "time table", "datesheet", "date sheet", "routine", "exam schedule"]):
+        return (
+            "📋 The official examination timetable for the current semester has not been officially released in the current circulars.\n\n"
+            "Please create a **Helpdesk Support Ticket** below so the Examination Cell can provide your department's official timetable directly.",
+            0.35,
+            False,
+            "timetable_pending"
+        )
+
+    # Keyword mapping — explicit and collision-free (scholarship checked before exam to prevent cross-matching)
     keyword_map = {
         "project_presentation": [
             "project presentation", "technical project", "project review", "capstone", 
             "synopsis", "project viva", "project demo", "seminar presentation", 
             "project submission", "presentation conducted", "final year project", "mini project"
         ],
+        "scholarship": ["scholarship", "freeship", "ebc", "obc", "merit", "mahadbt", "financial aid", "scholarship form"],
         "attendance": [
             "attendance", "absent", "75%", "condonation", "minimum attendance", 
             "defaulter", "attend class", "attendance requirement", "attendance policy"
@@ -170,7 +181,6 @@ def _get_builtin_answer(query: str) -> Tuple[str, float, bool, str]:
         "fee": ["fee", "fees", "payment", "tuition", "challan", "due date", "late fee", "amount"],
         "exam": ["exam", "examination", "marks", "result", "kt", "back", "revaluation", "passing", "semester exam"],
         "hostel": ["hostel", "accommodation", "room", "warden", "curfew", "boarding"],
-        "scholarship": ["scholarship", "freeship", "ebc", "obc", "merit", "mahadbt", "financial aid"],
         "library": ["library", "book", "borrow", "fine", "nptel", "ieee", "journal"],
         "syllabus": ["syllabus", "curriculum", "academic calendar", "subjects", "course outline"],
         "departments": ["department", "cse", "aiml", "ai ml", "data science", "bca", "mca", "programme", "course offered"],
@@ -237,7 +247,7 @@ def generate_rag_answer(query: str, retrieved_chunks: List[Dict[str, Any]]) -> T
         except Exception as e:
             print(f"⚠️ Gemini API generation failed: {e}. Using built-in DYPSEM knowledge base.")
 
-    # If chunks found — use them directly (no Gemini)
+    # If chunks found — check specific intent and synthesize
     if retrieved_chunks:
         top_score = retrieved_chunks[0]["similarity"]
         confidence = round(min(0.90, max(0.45, top_score + 0.25)), 2)
@@ -247,6 +257,28 @@ def generate_rag_answer(query: str, retrieved_chunks: List[Dict[str, Any]]) -> T
             doc_title = primary_chunk["document_title"]
             page_num = primary_chunk["page_number"]
             content = primary_chunk["content"].strip()
+
+            # Specific intent check: Student asks for timetable, but chunk only contains rules
+            q_low = query.lower()
+            is_timetable_q = any(k in q_low for k in ["timetable", "time table", "datesheet", "date sheet", "routine", "exam schedule"])
+            has_timetable_data = any(k in content.lower() for k in ["timetable", "time table", "datesheet", " am", " pm", "paper code", "slot"])
+            is_rules_doc = any(k in doc_title.lower() or k in content.lower() for k in ["rule", "guideline", "malpractice", "conduct", "discipline", "attendance"])
+
+            if is_timetable_q and is_rules_doc and not has_timetable_data:
+                return (
+                    f"📋 **Official Circular Reviewed**: The college has issued \"**{doc_title}**\", which outlines examination rules, hall conduct, and student discipline regulations.\n\n"
+                    f"⚠️ **Timetable Not Released in this Notice**: The specific course/semester examination timetable is **not** included in this circular.\n\n"
+                    f"Please create a **Helpdesk Support Ticket** below so the Examination Cell can provide your department's official timetable directly.",
+                    0.35,
+                    False,
+                    "timetable_not_found"
+                )
+
+            # Specific intent check: Scholarship deadline vs exam
+            is_scholarship_deadline_q = any(k in q_low for k in ["scholarship", "mahadbt", "ebc"]) and any(k in q_low for k in ["last date", "deadline", "due date", "date"])
+            if is_scholarship_deadline_q and "exam" in doc_title.lower() and "scholarship" not in doc_title.lower():
+                return _get_builtin_answer(query)
+
             paragraphs = content.split('\n')
             main_body = "\n".join([p for p in paragraphs if len(p.strip()) > 20])
             if not main_body:

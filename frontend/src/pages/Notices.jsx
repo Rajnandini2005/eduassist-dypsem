@@ -144,10 +144,19 @@ export default function Notices() {
             >
               {/* Category, Department & Pin Tag */}
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="flex items-center gap-2.5">
+                <div className="flex items-center gap-2 flex-wrap">
                   <span className="text-[10px] font-mono font-bold px-2.5 py-1 rounded-lg uppercase bg-blue-50 text-blue-900 border border-blue-200">
                     {notice.category}
                   </span>
+                  {notice.status === 'superseded' ? (
+                    <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-300">
+                      🔄 Superseded
+                    </span>
+                  ) : (
+                    <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                      🟢 Active
+                    </span>
+                  )}
                   <span className="text-xs text-slate-600 font-semibold flex items-center gap-1">
                     <Building2 className="w-3.5 h-3.5 text-blue-700" />
                     {notice.department_name}

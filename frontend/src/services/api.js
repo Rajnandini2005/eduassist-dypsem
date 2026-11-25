@@ -532,31 +532,50 @@ export const api = {
       content: data.content,
       category: data.category || 'General',
       department_id: data.department_id || null,
+      department_name: data.department_name || 'Campus Wide',
       attachment_name: data.attachment_name || null,
       attachment_url: data.attachment_url || null,
       file_name: data.file_name || data.attachment_name || null,
-      author_name: data.author_name || 'Faculty / Staff',
-      pinned: data.pinned || false,
+      author_name: data.author_name || data.created_by_name || 'Faculty / Staff',
+      created_by_name: data.created_by_name || 'Faculty / Staff',
+      is_pinned: Boolean(data.is_pinned || data.pinned),
+      status: data.status || 'active',
       created_at: new Date().toISOString(),
       is_local: true
     };
 
-    // Save locally
+    // Save locally with supersede handling for same-category updates
     try {
       const existing = JSON.parse(localStorage.getItem('local_notices') || '[]');
+      if (data.supersede_category && localNotice.status === 'active') {
+        existing.forEach(n => {
+          if (n.category?.toLowerCase() === localNotice.category?.toLowerCase()) {
+            n.status = 'superseded';
+          }
+        });
+      }
       existing.unshift(localNotice);
       localStorage.setItem('local_notices', JSON.stringify(existing));
     } catch {}
 
-    // Auto RAG indexing locally for AI ChatBot
+    // Auto RAG indexing locally for AI ChatBot with status & recency
     try {
       const ragChunks = JSON.parse(localStorage.getItem('rag_notice_chunks') || '[]');
+      if (data.supersede_category && localNotice.status === 'active') {
+        ragChunks.forEach(c => {
+          if (c.metadata?.category?.toLowerCase() === localNotice.category?.toLowerCase()) {
+            c.status = 'superseded';
+          }
+        });
+      }
       ragChunks.unshift({
         id: 'chunk-' + Date.now(),
         document_id: localNotice.id,
         title: localNotice.title,
-        content: `NOTICE: ${localNotice.title}\nCATEGORY: ${localNotice.category}\nDATE: ${new Date().toLocaleDateString()}\nATTACHED FILE: ${localNotice.attachment_name || 'None'}\nDETAILS:\n${localNotice.content}`,
-        metadata: { category: localNotice.category, file: localNotice.attachment_name }
+        content: `NOTICE: ${localNotice.title}\nCATEGORY: ${localNotice.category}\nSTATUS: ${localNotice.status}\nDATE: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}\nATTACHED FILE: ${localNotice.attachment_name || 'None'}\nDETAILS:\n${localNotice.content}`,
+        status: localNotice.status,
+        created_at: localNotice.created_at,
+        metadata: { category: localNotice.category, file: localNotice.attachment_name, status: localNotice.status }
       });
       localStorage.setItem('rag_notice_chunks', JSON.stringify(ragChunks));
     } catch {}

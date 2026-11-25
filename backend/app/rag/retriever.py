@@ -79,8 +79,24 @@ def retrieve_relevant_chunks(
         common = query_terms.intersection(chunk_words)
         kw_ratio = (len(common) / len(query_terms)) if query_terms else 0.0
 
-        # Composite score
-        composite_score = (sim * 0.50) + (kw_ratio * 0.50)
+        # Domain guard: Prevents cross-domain keyword collisions (e.g., Scholarship Form vs Exam Form)
+        q_low = query.lower()
+        is_scholarship_q = any(k in q_low for k in ["scholarship", "mahadbt", "ebc", "freeship", "bursary"])
+        is_chunk_scholarship = any(k in (doc.get("title", "") + " " + chunk_text).lower() for k in ["scholarship", "mahadbt", "ebc", "freeship", "bursary"])
+        if is_scholarship_q and not is_chunk_scholarship:
+            continue
+
+        is_exam_q = any(k in q_low for k in ["exam", "examination", "reval", "revaluation", "backlog", "kt", "hall ticket"]) and not is_scholarship_q
+        is_chunk_exam = any(k in (doc.get("title", "") + " " + chunk_text).lower() for k in ["exam", "examination", "reval", "revaluation", "backlog", "kt"])
+        if is_exam_q and not is_chunk_exam and is_chunk_scholarship:
+            continue
+
+        # Composite score with recency weighting if available
+        composite_score = (sim * 0.45) + (kw_ratio * 0.55)
+        if doc.get("status") == "active":
+            composite_score += 0.05
+        elif doc.get("status") == "superseded":
+            composite_score -= 0.15
 
         if composite_score >= threshold:
             scored_chunks.append({

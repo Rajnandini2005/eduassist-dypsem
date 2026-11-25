@@ -13,6 +13,8 @@ export default function NoticeEditModal({ isOpen, onClose, noticeToEdit, onSaved
   const [departmentId, setDepartmentId] = useState('');
   const [isPinned, setIsPinned] = useState(false);
   const [targetAudience, setTargetAudience] = useState('all');
+  const [noticeStatus, setNoticeStatus] = useState('active');
+  const [supersedeOlder, setSupersedeOlder] = useState(true);
   const [departments, setDepartments] = useState([]);
   const [attachedFile, setAttachedFile] = useState(null);
   const [submitting, setSubmitting] = useState(false);
@@ -29,6 +31,8 @@ export default function NoticeEditModal({ isOpen, onClose, noticeToEdit, onSaved
         setDepartmentId(noticeToEdit.department_id || '');
         setIsPinned(Boolean(noticeToEdit.is_pinned));
         setTargetAudience(noticeToEdit.target_audience || 'all');
+        setNoticeStatus(noticeToEdit.status || 'active');
+        setSupersedeOlder(false);
         setAttachedFile(noticeToEdit.attachment_name ? { name: noticeToEdit.attachment_name } : null);
       } else {
         setTitle('');
@@ -37,6 +41,8 @@ export default function NoticeEditModal({ isOpen, onClose, noticeToEdit, onSaved
         setDepartmentId('');
         setIsPinned(false);
         setTargetAudience('all');
+        setNoticeStatus('active');
+        setSupersedeOlder(true);
         setAttachedFile(null);
       }
       setError('');
@@ -80,6 +86,8 @@ export default function NoticeEditModal({ isOpen, onClose, noticeToEdit, onSaved
       department_name: deptName,
       is_pinned: isPinned,
       target_audience: targetAudience,
+      status: noticeStatus,
+      supersede_category: supersedeOlder,
       attachment_name: attachedFile?.name || null,
       file_name: attachedFile?.name || null,
       created_by_name: user?.full_name || 'Faculty Office'
@@ -230,6 +238,35 @@ export default function NoticeEditModal({ isOpen, onClose, noticeToEdit, onSaved
                 <span>Pin to top of Notice Board</span>
               </label>
             </div>
+          </div>
+
+          {/* Circular Status & Recency Control */}
+          <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-2.5">
+            <div className="flex items-center justify-between gap-3">
+              <label className="block text-xs font-bold text-slate-700">
+                Circular Status & Recency
+              </label>
+              <select
+                value={noticeStatus}
+                onChange={(e) => setNoticeStatus(e.target.value)}
+                className="px-2.5 py-1.5 rounded-lg bg-white border border-slate-300 text-xs font-bold text-slate-800 focus:outline-none focus:border-blue-600"
+              >
+                <option value="active">🟢 Active (Current & In Effect)</option>
+                <option value="superseded">🔄 Superseded (Replaced by Newer Notice)</option>
+                <option value="archived">📦 Archived (Expired)</option>
+              </select>
+            </div>
+            {!noticeToEdit && noticeStatus === 'active' && (
+              <label className="flex items-center gap-2 text-[11px] text-slate-600 cursor-pointer pt-1">
+                <input
+                  type="checkbox"
+                  checked={supersedeOlder}
+                  onChange={(e) => setSupersedeOlder(e.target.checked)}
+                  className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-3.5 h-3.5"
+                />
+                <span>Mark earlier circulars in this category as Superseded (AI will give this latest notice)</span>
+              </label>
+            )}
           </div>
 
           <div>

@@ -82,10 +82,14 @@ export default function Login() {
       navigate('/');
     } catch (err) {
       const msg = err.message || '';
-      if (msg === 'BACKEND_UNAVAILABLE' || msg === 'BACKEND_SLOW') {
+      if (msg === 'USER_NOT_FOUND') {
+        setError('No account found with this email. Please click "Create Account" below to register first.');
+      } else if (msg === 'INCORRECT_PASSWORD') {
+        setError('Incorrect password. Please verify your password and try again.');
+      } else if (msg === 'BACKEND_UNAVAILABLE' || msg === 'BACKEND_SLOW') {
         setError('Server is starting up. Please try again in 30 seconds.');
       } else {
-        setError('Email or password is wrong. Please check and try again.');
+        setError('Invalid credentials. Please make sure you have created an account first.');
       }
     } finally {
       setLoading(false);
